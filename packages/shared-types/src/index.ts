@@ -116,3 +116,34 @@ export type ThresholdUpsert = {
   justification?: string | null;
   source_session_id?: string | null;
 };
+
+// ---------------------------------------------------------------------------
+// GET / PUT /api/user/programs
+// ---------------------------------------------------------------------------
+
+/** Agent-prescribed working target for one (user, lift). Written by the
+ *  `recommend_load` tool at the end of a session; read pre-session to
+ *  pre-fill the lift page and power the "today's watch list" banner. */
+export type ProgramOut = {
+  user_id: string;
+  lift: Lift;
+  weight_lb: number;
+  reps: number;
+  sets: number;
+  source_session_id: string | null;
+  created_at: IsoDateTime;
+};
+
+export type ProgramsResponse = {
+  user_id: string;
+  programs: ProgramOut[];
+};
+
+export type ProgramUpsert = {
+  /** Temporary stub until Clerk auth lands. */
+  user_id: string;
+  weight_lb: number;
+  reps: number;
+  sets: number;
+  source_session_id?: string | null;
+};

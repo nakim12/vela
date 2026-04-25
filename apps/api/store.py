@@ -13,7 +13,7 @@ from uuid import uuid4
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session as DBSession
 
-from db.models import RiskEventRow, User, UserThreshold, WorkoutSession
+from db.models import Program, RiskEventRow, User, UserThreshold, WorkoutSession
 from models.risk_event import RiskEvent
 
 
@@ -209,3 +209,65 @@ def upsert_threshold(
     db.commit()
     db.refresh(row)
     return _serialize_threshold(row)
+
+
+def _serialize_program(p: Program) -> dict[str, Any]:
+    return {
+        "user_id": p.user_id,
+        "lift": p.lift,
+        "weight_lb": p.weight_lb,
+        "reps": p.reps,
+        "sets": p.sets,
+        "source_session_id": p.source_session_id,
+        "created_at": p.created_at,
+    }
+
+
+def list_programs(db: DBSession, user_id: str) -> list[dict[str, Any]]:
+    """Return every lift's most-recent prescription for this user."""
+    stmt = (
+        select(Program)
+        .where(Program.user_id == user_id)
+        .order_by(Program.lift.asc())
+    )
+    rows = db.execute(stmt).scalars().all()
+    return [_serialize_program(p) for p in rows]
+
+
+def upsert_program(
+    db: DBSession,
+    user_id: str,
+    lift: str,
+    weight_lb: float,
+    reps: int,
+    sets: int,
+    source_session_id: str | None,
+) -> dict[str, Any]:
+    """Upsert the agent's next-session prescription for one (user, lift).
+
+    Used by the ``recommend_load`` agent tool (via db/stubs.py) and by the
+    ``PUT /api/user/programs/{lift}`` route. Overwrite semantics — we don't
+    keep per-prescription history (Backboard memory owns the narrative).
+    """
+    _ensure_user(db, user_id)
+    existing = db.get(Program, (user_id, lift))
+    if existing is None:
+        row = Program(
+            user_id=user_id,
+            lift=lift,
+            weight_lb=weight_lb,
+            reps=reps,
+            sets=sets,
+            source_session_id=source_session_id,
+        )
+        db.add(row)
+    else:
+        existing.weight_lb = weight_lb
+        existing.reps = reps
+        existing.sets = sets
+        existing.source_session_id = source_session_id
+        existing.created_at = datetime.now(timezone.utc)
+        row = existing
+    db.commit()
+    db.refresh(row)
+    return _serialize_program(row)
