@@ -212,13 +212,16 @@ async def dispatch(
         return json.dumps({"ok": True})
 
     if name == "recommend_load":
-        # TODO: route to programming table once BE-A lands it.
+        target = arguments["next_session_target"]
+        db_stubs.upsert_program(
+            user_id,
+            arguments["lift"],
+            float(target["weight_lb"]),
+            int(target["reps"]),
+            int(target["sets"]),
+        )
         return json.dumps(
-            {
-                "ok": True,
-                "lift": arguments["lift"],
-                "target": arguments["next_session_target"],
-            }
+            {"ok": True, "lift": arguments["lift"], "target": target}
         )
 
     return json.dumps({"error": f"unknown tool: {name}"})

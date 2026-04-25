@@ -18,6 +18,7 @@ Interface kept intact from the in-memory version:
     - get_thresholds(user_id) -> dict[str, float]
     - write_session_summary(session_id, summary_md) -> None
     - get_session_summary(session_id) -> str | None
+    - upsert_program(user_id, lift, weight_lb, reps, sets, source_session_id?) -> None
 """
 from __future__ import annotations
 
@@ -27,6 +28,7 @@ from typing import Any
 
 from models.risk_event import Lift
 
+from .models import Program as ProgramRow
 from .models import User as UserRow
 from .models import UserThreshold as UserThresholdRow
 from .models import WorkoutSession as SessionRow
@@ -170,6 +172,44 @@ def get_session_summary(session_id: str) -> str | None:
         if row is None:
             return None
         return row.summary_md
+
+
+def upsert_program(
+    user_id: str,
+    lift: Lift,
+    weight_lb: float,
+    reps: int,
+    sets: int,
+    source_session_id: str | None = None,
+) -> None:
+    """Upsert the agent's prescribed next-session target for (user, lift).
+
+    Backing for the ``recommend_load`` agent tool. The user row must
+    already exist (the agent only prescribes for a known lifter). Same
+    overwrite semantics as ``store.upsert_program``.
+    """
+    with SessionLocal() as db:
+        if db.get(UserRow, user_id) is None:
+            raise KeyError(f"unknown user: {user_id}")
+        existing = db.get(ProgramRow, (user_id, lift))
+        if existing is None:
+            db.add(
+                ProgramRow(
+                    user_id=user_id,
+                    lift=lift,
+                    weight_lb=float(weight_lb),
+                    reps=int(reps),
+                    sets=int(sets),
+                    source_session_id=source_session_id,
+                )
+            )
+        else:
+            existing.weight_lb = float(weight_lb)
+            existing.reps = int(reps)
+            existing.sets = int(sets)
+            existing.source_session_id = source_session_id
+            existing.created_at = datetime.now(timezone.utc)
+        db.commit()
 
 
 # -- Demo fixture seeding ---------------------------------------------------

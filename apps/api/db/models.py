@@ -71,6 +71,33 @@ class UserThreshold(Base):
     )
 
 
+class Program(Base):
+    """Agent-prescribed "next session" target for one (user, lift) pair.
+
+    Written by the agent's ``recommend_load`` tool at the end of a session;
+    read by the pre-session watch-list banner and the lift page. Semantics
+    match ``user_thresholds``: upsert on (user_id, lift), overwrite each
+    time — we don't keep history here because Backboard memory already has
+    the narrative ("we dropped squat 10lb this week because...").
+    """
+
+    __tablename__ = "programs"
+
+    user_id: Mapped[str] = mapped_column(
+        String, ForeignKey("users.id"), primary_key=True
+    )
+    lift: Mapped[str] = mapped_column(String, primary_key=True)
+    weight_lb: Mapped[float] = mapped_column(Float)
+    reps: Mapped[int] = mapped_column(Integer)
+    sets: Mapped[int] = mapped_column(Integer)
+    source_session_id: Mapped[str | None] = mapped_column(
+        String, ForeignKey("sessions.id"), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=_utcnow
+    )
+
+
 class RiskEventRow(Base):
     __tablename__ = "risk_events"
 

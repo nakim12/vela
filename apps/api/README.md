@@ -1,7 +1,7 @@
 # Vela API
 
-FastAPI service that powers sessions, risk events, user thresholds, and the
-coaching-agent plumbing (WebSockets + Backboard).
+FastAPI service that powers sessions, risk events, user thresholds, agent
+load prescriptions, and the coaching-agent plumbing (WebSockets + Backboard).
 
 This README only covers the backend — for the overall system and team split
 see [`/vela_project_plan.md`](../../vela_project_plan.md).
@@ -155,6 +155,8 @@ Swagger UI at `/docs` is the source of truth. Quick reference:
 | GET | `/api/sessions/{id}/report` | session + its events for the post-set view |
 | GET | `/api/user/thresholds?user_id=` | list per-user rule threshold overrides |
 | PUT | `/api/user/thresholds/{rule_id}` | upsert an override (called by the agent) |
+| GET | `/api/user/programs?user_id=` | list agent-prescribed next-session targets per lift |
+| PUT | `/api/user/programs/{lift}` | upsert next-session target (called by `recommend_load`) |
 | WS | `/ws/sessions/{id}` | agent → browser voice cue stream (Nathan) |
 
 The TypeScript mirrors of every request/response shape live in
@@ -190,7 +192,7 @@ apps/api/
 ├── routes/
 │   ├── health.py
 │   ├── sessions.py     # POST/GET sessions, events, end, report
-│   └── user.py         # GET/PUT user thresholds
+│   └── user.py         # GET/PUT user thresholds + programs
 ├── agents/             # (Nathan) Backboard + Claude orchestration
 ├── bb/                 # (Nathan) Backboard SDK wrapper
 ├── ws/
