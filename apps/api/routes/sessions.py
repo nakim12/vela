@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException
+from typing import Literal
+
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from db.session import get_db
@@ -7,6 +9,8 @@ from models.session import (
     EventsIn,
     SessionCreate,
     SessionEndOut,
+    SessionListItem,
+    SessionListResponse,
     SessionOut,
     SessionReport,
 )
@@ -17,6 +21,7 @@ from store import (
     end_session,
     get_events,
     get_session,
+    list_sessions,
 )
 
 router = APIRouter(prefix="/sessions", tags=["sessions"])
@@ -26,6 +31,21 @@ router = APIRouter(prefix="/sessions", tags=["sessions"])
 def create(body: SessionCreate, db: Session = Depends(get_db)) -> SessionOut:
     record = create_session(db, body.user_id, body.lift)
     return SessionOut(**record)
+
+
+@router.get("", response_model=SessionListResponse)
+def list_for_user(
+    user_id: str,
+    lift: Literal["squat", "bench", "deadlift"] | None = None,
+    limit: int = Query(20, ge=1, le=100),
+    db: Session = Depends(get_db),
+) -> SessionListResponse:
+    """List the user's most-recent sessions (newest first)."""
+    rows = list_sessions(db, user_id, lift=lift, limit=limit)
+    return SessionListResponse(
+        user_id=user_id,
+        sessions=[SessionListItem(**r) for r in rows],
+    )
 
 
 @router.post("/{session_id}/events", response_model=EventsAccepted)

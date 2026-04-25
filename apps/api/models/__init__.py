@@ -4,6 +4,8 @@ from .session import (
     EventsIn,
     SessionCreate,
     SessionEndOut,
+    SessionListItem,
+    SessionListResponse,
     SessionOut,
     SessionReport,
 )
@@ -17,6 +19,8 @@ __all__ = [
     "EventsIn",
     "EventsAccepted",
     "SessionReport",
+    "SessionListItem",
+    "SessionListResponse",
     "ThresholdOut",
     "ThresholdsResponse",
     "ThresholdUpsert",
