@@ -4,8 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from db import models  # noqa: F401 — register ORM classes with Base
-from db.base import Base
-from db.session import engine
+from db.migrate import run_migrations
 from db.stubs import seed_demo_fixtures
 from routes.health import router as health_router
 from routes.sessions import router as sessions_router
@@ -15,7 +14,7 @@ from ws.session import router as ws_session_router
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    Base.metadata.create_all(bind=engine)
+    run_migrations()
     seed_demo_fixtures()
     yield
 
