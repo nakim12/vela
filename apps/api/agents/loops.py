@@ -65,10 +65,14 @@ async def in_set_loop(
     prompt = (
         "In-set update. Last few events:\n"
         f"```json\n{json.dumps(payload)}\n```\n"
-        "Respond with ONE cue, 3-8 words, no explanation. If high-severity "
-        "risk correlates with a known injury, instead respond exactly: STOP."
+        "Output the cue as raw text, 3-8 words. Do NOT wrap it in quotes "
+        "of any kind. No markdown, no trailing period, no preamble. Example "
+        "of the exact format: brace ribs down. Bias toward this lifter's "
+        "cue preferences from memory (internal vs external). If a "
+        "high-severity risk correlates with a known injury, instead output "
+        "exactly: STOP"
     )
-    return await run_until_done(
+    raw = await run_until_done(
         client,
         user_id=user_id,
         assistant_id=assistant_id,
@@ -76,6 +80,20 @@ async def in_set_loop(
         content=prompt,
         max_iterations=2,
     )
+    return _strip_wrapping_quotes(raw.strip())
+
+
+_QUOTE_PAIRS = (("'", "'"), ('"', '"'), ("“", "”"), ("‘", "’"))
+
+
+def _strip_wrapping_quotes(s: str) -> str:
+    """Defensive: TTS sounds wrong if the cue is wrapped in quotes."""
+    if len(s) < 2:
+        return s
+    for opener, closer in _QUOTE_PAIRS:
+        if s.startswith(opener) and s.endswith(closer):
+            return s[1:-1].strip()
+    return s
 
 
 async def pre_session_loop(
@@ -90,9 +108,12 @@ async def pre_session_loop(
     thread_id = await ensure_thread_for_session(client, session_id, assistant_id)
 
     prompt = (
-        f"New session opening. Lift planned: {lift}. In TWO short lines, "
-        "surface relevant injury notes, recent regressions, and mobility flags "
-        "from the lifter's knowledge graph. No preamble."
+        f"New session opening. Lift planned: {lift}. Output exactly TWO "
+        "lines separated by a single newline. Line 1: relevant injury notes "
+        "or recent regressions. Line 2: mobility flags or anthropometry "
+        "considerations. No preamble, no markdown, no bullet markers, no "
+        "blank line between them. If nothing relevant exists for one of "
+        "the lines, write \"No notable history.\" on that line."
     )
     return await run_until_done(
         client,

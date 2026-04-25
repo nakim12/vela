@@ -4,3 +4,4 @@ pydantic>=2
 pydantic-settings>=2
 backboard-sdk>=1.5
 sqlalchemy>=2.0
+websockets>=13
