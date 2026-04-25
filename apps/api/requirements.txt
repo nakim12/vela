@@ -5,3 +5,5 @@ pydantic-settings>=2
 backboard-sdk>=1.5
 sqlalchemy>=2.0
 websockets>=13
+psycopg[binary]>=3.2
+python-dotenv>=1.0
