@@ -218,34 +218,61 @@ def upsert_program(
 DEMO_USER_ID = "demo-user-1"
 DEMO_SESSION_ID = "demo-session-1"
 
+# Second persona for the §13 demo step 3: same uploaded video should produce
+# visibly different cues against demo-user-2 than against demo-user-1, because
+# their Backboard memories + threshold overrides differ. Memories are seeded
+# separately by ``scripts/seed_demo_personas.py`` since they live in
+# Backboard, not Postgres. The DB rows here are just the user/session shells
+# the agent reads via get_user / get_session.
+DEMO_USER_ID_2 = "demo-user-2"
+DEMO_SESSION_ID_2 = "demo-session-2"
+
 
 def seed_demo_fixtures() -> None:
-    """Idempotently create the hardcoded demo user + session.
+    """Idempotently create the hardcoded demo users + sessions.
 
     Nathan's smoke scripts (``scripts/smoke_*.py``) all reference these ids.
     Called once from the FastAPI lifespan hook so they're always present.
+    Two personas:
+      * demo-user-1 / demo-session-1 — long femurs, internal cue preference,
+        low-back history (the persona seeded by smoke_post_set).
+      * demo-user-2 / demo-session-2 — short femurs, external cue preference,
+        no injury history, BUTT_WINK threshold cleared by PT (seeded by
+        scripts/seed_demo_personas.py).
     """
     with SessionLocal() as db:
-        user = db.get(UserRow, DEMO_USER_ID)
-        if user is None:
-            db.add(
-                UserRow(
-                    id=DEMO_USER_ID,
-                    email="[email protected]",
-                    anthropometrics={"height_in": 70, "femur_torso_ratio": 1.0},
+        for user_id, anthro in (
+            (
+                DEMO_USER_ID,
+                {"height_in": 70, "femur_torso_ratio": 1.05},
+            ),
+            (
+                DEMO_USER_ID_2,
+                {"height_in": 67, "femur_torso_ratio": 0.92},
+            ),
+        ):
+            if db.get(UserRow, user_id) is None:
+                db.add(
+                    UserRow(
+                        id=user_id,
+                        email=f"{user_id}@vela.local",
+                        anthropometrics=anthro,
+                    )
                 )
-            )
-            db.flush()
+        db.flush()
 
-        session = db.get(SessionRow, DEMO_SESSION_ID)
-        if session is None:
-            db.add(
-                SessionRow(
-                    id=DEMO_SESSION_ID,
-                    user_id=DEMO_USER_ID,
-                    lift="squat",
-                    bb_thread_id="",
+        for session_id, owner_id in (
+            (DEMO_SESSION_ID, DEMO_USER_ID),
+            (DEMO_SESSION_ID_2, DEMO_USER_ID_2),
+        ):
+            if db.get(SessionRow, session_id) is None:
+                db.add(
+                    SessionRow(
+                        id=session_id,
+                        user_id=owner_id,
+                        lift="squat",
+                        bb_thread_id="",
+                    )
                 )
-            )
 
         db.commit()
