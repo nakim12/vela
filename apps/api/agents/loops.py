@@ -8,6 +8,7 @@ from backboard import BackboardClient
 
 from agents.runtime import (
     ensure_assistant_for_user,
+    ensure_coach_thread_for_user,
     ensure_thread_for_session,
     run_until_done,
 )
@@ -130,4 +131,32 @@ async def pre_session_loop(
         assistant_id=assistant_id,
         thread_id=thread_id,
         content=prompt,
+    )
+
+
+async def coach_chat_loop(
+    client: BackboardClient,
+    *,
+    user_id: str,
+    message: str,
+) -> str:
+    """Free-form conversational turn against the user's persistent coach thread.
+
+    Powers the ``/coach`` chat page. Uses the same per-user assistant + tools
+    as the in/post/pre loops, so the coach can ``query_user_kg`` /
+    ``search_research`` mid-conversation when the user asks substantive
+    questions (e.g. "how should I approach my next squat session?"). Threads
+    are cached per user in-process via ``ensure_coach_thread_for_user``, so
+    multi-turn chats stay coherent until uvicorn restarts.
+    """
+    assistant_id = await ensure_assistant_for_user(client, user_id)
+    thread_id = await ensure_coach_thread_for_user(
+        client, user_id, assistant_id
+    )
+    return await run_until_done(
+        client,
+        user_id=user_id,
+        assistant_id=assistant_id,
+        thread_id=thread_id,
+        content=message,
     )

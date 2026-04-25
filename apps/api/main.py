@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from db import models  # noqa: F401 — register ORM classes with Base
 from db.migrate import run_migrations
 from db.stubs import seed_demo_fixtures
+from routes.agent import router as agent_router
 from routes.health import router as health_router
 from routes.sessions import router as sessions_router
 from routes.user import router as user_router
@@ -32,6 +33,7 @@ app.add_middleware(
 app.include_router(health_router, prefix="/api")
 app.include_router(sessions_router, prefix="/api")
 app.include_router(user_router, prefix="/api")
+app.include_router(agent_router, prefix="/api")
 app.include_router(ws_session_router)
 
 
