@@ -10,7 +10,7 @@ from datetime import datetime, timezone
 from typing import Any
 from uuid import uuid4
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session as DBSession
 
 from db.models import RiskEventRow, User, UserThreshold, WorkoutSession
@@ -120,6 +120,45 @@ def get_events(db: DBSession, session_id: str) -> list[RiskEvent]:
 def count_events(db: DBSession, session_id: str) -> int:
     stmt = select(RiskEventRow).where(RiskEventRow.session_id == session_id)
     return len(db.execute(stmt).scalars().all())
+
+
+def list_sessions(
+    db: DBSession,
+    user_id: str,
+    lift: str | None = None,
+    limit: int = 20,
+) -> list[dict[str, Any]]:
+    """Return this user's sessions (newest first) with risk-event counts.
+
+    Single query with a LEFT JOIN + GROUP BY so we don't N+1 the event count.
+    """
+    event_count = func.count(RiskEventRow.id).label("event_count")
+    stmt = (
+        select(WorkoutSession, event_count)
+        .join(
+            RiskEventRow,
+            RiskEventRow.session_id == WorkoutSession.id,
+            isouter=True,
+        )
+        .where(WorkoutSession.user_id == user_id)
+        .group_by(WorkoutSession.id)
+        .order_by(WorkoutSession.started_at.desc())
+        .limit(limit)
+    )
+    if lift is not None:
+        stmt = stmt.where(WorkoutSession.lift == lift)
+
+    rows = db.execute(stmt).all()
+    return [
+        {
+            "session_id": s.id,
+            "lift": s.lift,
+            "started_at": s.started_at,
+            "ended_at": s.ended_at,
+            "event_count": int(count),
+        }
+        for s, count in rows
+    ]
 
 
 def _serialize_threshold(t: UserThreshold) -> dict[str, Any]:

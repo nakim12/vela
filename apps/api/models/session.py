@@ -41,3 +41,18 @@ class SessionReport(BaseModel):
     session: SessionOut
     events: list[RiskEvent]
     event_count: int
+
+
+class SessionListItem(BaseModel):
+    """Summary row for the history page; no events, just counts."""
+
+    session_id: str
+    lift: Lift
+    started_at: datetime
+    ended_at: datetime | None = None
+    event_count: int
+
+
+class SessionListResponse(BaseModel):
+    user_id: str
+    sessions: list[SessionListItem]

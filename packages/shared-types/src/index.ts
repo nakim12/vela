@@ -80,6 +80,23 @@ export type SessionEndOut = {
 };
 
 // ---------------------------------------------------------------------------
+// GET /api/sessions  (history list)
+// ---------------------------------------------------------------------------
+
+export type SessionListItem = {
+  session_id: string;
+  lift: Lift;
+  started_at: IsoDateTime;
+  ended_at: IsoDateTime | null;
+  event_count: number;
+};
+
+export type SessionListResponse = {
+  user_id: string;
+  sessions: SessionListItem[];
+};
+
+// ---------------------------------------------------------------------------
 // GET /api/sessions/:id/report
 // ---------------------------------------------------------------------------
 
