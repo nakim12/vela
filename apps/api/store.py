@@ -25,6 +25,7 @@ def _serialize_session(s: WorkoutSession) -> dict[str, Any]:
         "started_at": s.started_at,
         "ended_at": s.ended_at,
         "bb_thread_id": s.bb_thread_id,
+        "summary_md": s.summary_md,
     }
 
 

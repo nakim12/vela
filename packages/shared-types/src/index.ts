@@ -54,6 +54,8 @@ export type SessionOut = {
   started_at: IsoDateTime;
   ended_at: IsoDateTime | null;
   bb_thread_id: string;
+  /** Markdown post-set report written by the agent (null until write_session_summary fires). */
+  summary_md: string | null;
 };
 
 // ---------------------------------------------------------------------------
