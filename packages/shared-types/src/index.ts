@@ -217,6 +217,41 @@ export type PreSessionBanner = {
 };
 
 // ---------------------------------------------------------------------------
+// POST /api/onboarding  (owned by BE-B)
+// ---------------------------------------------------------------------------
+
+/** Anthropometry blob from the onboarding form. All fields optional —
+ *  partial submissions are valid. */
+export type Anthropometrics = {
+  height_in?: number;
+  weight_lb?: number;
+  /** Femur:torso length ratio. >=1.0 means long femurs (more forward lean
+   *  expected); <1.0 means short femurs (can squat upright). */
+  femur_torso_ratio?: number;
+};
+
+/** Body for `POST /api/onboarding`. Mirrors the §5.3 onboarding form. */
+export type OnboardingIn = {
+  /** Temporary stub until Clerk auth lands. */
+  user_id: string;
+  email?: string | null;
+  anthropometrics?: Anthropometrics;
+  /** Free-text injury / regression notes; one Backboard memory per item. */
+  injuries?: string[];
+  /** Free-text mobility limitations (e.g. "limited right ankle dorsiflexion"). */
+  mobility_flags?: string[];
+  /** Biases the in-set cue style. Coach can override later. */
+  cue_preference?: "internal" | "external" | null;
+};
+
+export type OnboardingResponse = {
+  user_id: string;
+  assistant_id: string;
+  /** Total Backboard memories seeded from this submission. */
+  memories_written: number;
+};
+
+// ---------------------------------------------------------------------------
 // POST /api/sessions/:id/post_set_summary  (agent-driven, owned by BE-B)
 // ---------------------------------------------------------------------------
 

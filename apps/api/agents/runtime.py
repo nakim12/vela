@@ -36,10 +36,15 @@ def _is_real_thread_id(value: str | None) -> bool:
 async def ensure_assistant_for_user(
     client: BackboardClient, user_id: str
 ) -> str:
-    """Idempotently create a Backboard assistant for the user. Returns its id."""
+    """Idempotently create a Backboard assistant for the user. Returns its id.
+
+    Always returns ``str``: the SDK's freshly-created Assistant exposes
+    ``assistant_id`` as a ``uuid.UUID``, which trips response_model
+    validation downstream. Cached values (read from DB) are already strings.
+    """
     user = db_stubs.get_user(user_id)
     if user.backboard_assistant_id:
-        return user.backboard_assistant_id
+        return str(user.backboard_assistant_id)
 
     assistant = await client.create_assistant(
         name=f"vela-coach-{user_id}",
@@ -47,7 +52,7 @@ async def ensure_assistant_for_user(
         tools=TOOL_DEFS,
     )
     db_stubs.set_user_assistant_id(user_id, assistant.assistant_id)
-    return assistant.assistant_id
+    return str(assistant.assistant_id)
 
 
 async def ensure_thread_for_session(
