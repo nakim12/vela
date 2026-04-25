@@ -10,7 +10,7 @@ from datetime import datetime, timezone
 from typing import Any
 from uuid import uuid4
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session as DBSession
 
 from db.models import RiskEventRow, User, UserThreshold, WorkoutSession
@@ -68,6 +68,43 @@ def create_session(db: DBSession, user_id: str, lift: str) -> dict[str, Any]:
 def get_session(db: DBSession, session_id: str) -> dict[str, Any] | None:
     s = db.get(WorkoutSession, session_id)
     return _serialize_session(s) if s else None
+
+
+def list_sessions(
+    db: DBSession,
+    user_id: str,
+    lift: str | None = None,
+    limit: int = 20,
+) -> list[dict[str, Any]]:
+    """Return the user's most-recent sessions with an attached `event_count`.
+
+    Newest first (by `started_at`). Optionally filter by lift.
+    """
+    event_count_col = func.count(RiskEventRow.id).label("event_count")
+    stmt = (
+        select(WorkoutSession, event_count_col)
+        .outerjoin(RiskEventRow, RiskEventRow.session_id == WorkoutSession.id)
+        .where(WorkoutSession.user_id == user_id)
+        .group_by(WorkoutSession.id)
+        .order_by(WorkoutSession.started_at.desc())
+        .limit(limit)
+    )
+    if lift is not None:
+        stmt = stmt.where(WorkoutSession.lift == lift)
+
+    results: list[dict[str, Any]] = []
+    for session_row, event_count in db.execute(stmt).all():
+        results.append(
+            {
+                "session_id": session_row.id,
+                "user_id": session_row.user_id,
+                "lift": session_row.lift,
+                "started_at": session_row.started_at,
+                "ended_at": session_row.ended_at,
+                "event_count": int(event_count),
+            }
+        )
+    return results
 
 
 def end_session(db: DBSession, session_id: str) -> dict[str, Any] | None:
