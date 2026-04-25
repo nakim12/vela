@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from sqlalchemy import DateTime, ForeignKey, String
+from sqlalchemy import DateTime, Float, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .base import Base
@@ -46,3 +46,25 @@ class WorkoutSession(Base):
         DateTime(timezone=True), nullable=True
     )
     bb_thread_id: Mapped[str] = mapped_column(String)
+
+
+class RiskEventRow(Base):
+    __tablename__ = "risk_events"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    session_id: Mapped[str] = mapped_column(
+        String, ForeignKey("sessions.id"), index=True
+    )
+    rule_id: Mapped[str] = mapped_column(String)
+    lift: Mapped[str] = mapped_column(String)
+    rep_index: Mapped[int] = mapped_column(Integer)
+    severity: Mapped[str] = mapped_column(String)
+    measured: Mapped[float] = mapped_column(Float)
+    threshold: Mapped[float] = mapped_column(Float)
+    frame_start: Mapped[int] = mapped_column(Integer)
+    frame_end: Mapped[int] = mapped_column(Integer)
+    confidence: Mapped[float] = mapped_column(Float)
+    side: Mapped[str | None] = mapped_column(String, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=_utcnow
+    )

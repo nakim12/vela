@@ -5,6 +5,7 @@ from .session import (
     SessionCreate,
     SessionEndOut,
     SessionOut,
+    SessionReport,
 )
 
 __all__ = [
@@ -14,4 +15,5 @@ __all__ = [
     "SessionEndOut",
     "EventsIn",
     "EventsAccepted",
+    "SessionReport",
 ]

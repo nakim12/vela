@@ -1,8 +1,8 @@
 """Data access layer for the Vela API.
 
-Session CRUD is persisted to the DB (see apps/api/db/).
-Risk events are still held in-memory — the next increment moves them to
-a real `risk_events` table.
+Sessions and risk events are persisted via SQLAlchemy (see apps/api/db/).
+Route handlers call these functions and pass in a `DBSession`, so the
+route layer is ignorant of the DB backend.
 """
 from __future__ import annotations
 
@@ -10,12 +10,11 @@ from datetime import datetime, timezone
 from typing import Any
 from uuid import uuid4
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session as DBSession
 
-from db.models import User, WorkoutSession
+from db.models import RiskEventRow, User, WorkoutSession
 from models.risk_event import RiskEvent
-
-_events: dict[str, list[RiskEvent]] = {}
 
 
 def _serialize_session(s: WorkoutSession) -> dict[str, Any]:
@@ -27,6 +26,20 @@ def _serialize_session(s: WorkoutSession) -> dict[str, Any]:
         "ended_at": s.ended_at,
         "bb_thread_id": s.bb_thread_id,
     }
+
+
+def _row_to_event(row: RiskEventRow) -> RiskEvent:
+    return RiskEvent(
+        rule_id=row.rule_id,
+        lift=row.lift,  # type: ignore[arg-type]
+        rep_index=row.rep_index,
+        severity=row.severity,  # type: ignore[arg-type]
+        measured=row.measured,
+        threshold=row.threshold,
+        frame_range=(row.frame_start, row.frame_end),
+        confidence=row.confidence,
+        side=row.side,  # type: ignore[arg-type]
+    )
 
 
 def _ensure_user(db: DBSession, user_id: str) -> User:
@@ -49,7 +62,6 @@ def create_session(db: DBSession, user_id: str, lift: str) -> dict[str, Any]:
     db.add(session)
     db.commit()
     db.refresh(session)
-    _events.setdefault(session.id, [])
     return _serialize_session(session)
 
 
@@ -75,10 +87,36 @@ def add_events(
     s = db.get(WorkoutSession, session_id)
     if s is None:
         return None
-    bucket = _events.setdefault(session_id, [])
-    bucket.extend(events)
-    return len(bucket)
+    for e in events:
+        db.add(
+            RiskEventRow(
+                session_id=session_id,
+                rule_id=e.rule_id,
+                lift=e.lift,
+                rep_index=e.rep_index,
+                severity=e.severity,
+                measured=e.measured,
+                threshold=e.threshold,
+                frame_start=e.frame_range[0],
+                frame_end=e.frame_range[1],
+                confidence=e.confidence,
+                side=e.side,
+            )
+        )
+    db.commit()
+    return count_events(db, session_id)
 
 
-def get_events(session_id: str) -> list[RiskEvent]:
-    return list(_events.get(session_id, []))
+def get_events(db: DBSession, session_id: str) -> list[RiskEvent]:
+    stmt = (
+        select(RiskEventRow)
+        .where(RiskEventRow.session_id == session_id)
+        .order_by(RiskEventRow.id.asc())
+    )
+    rows = db.execute(stmt).scalars().all()
+    return [_row_to_event(r) for r in rows]
+
+
+def count_events(db: DBSession, session_id: str) -> int:
+    stmt = select(RiskEventRow).where(RiskEventRow.session_id == session_id)
+    return len(db.execute(stmt).scalars().all())

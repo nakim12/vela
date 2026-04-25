@@ -35,3 +35,9 @@ class EventsIn(BaseModel):
 class EventsAccepted(BaseModel):
     accepted: int
     total_for_session: int
+
+
+class SessionReport(BaseModel):
+    session: SessionOut
+    events: list[RiskEvent]
+    event_count: int

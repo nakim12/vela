@@ -8,8 +8,16 @@ from models.session import (
     SessionCreate,
     SessionEndOut,
     SessionOut,
+    SessionReport,
 )
-from store import add_events, create_session, end_session, get_events
+from store import (
+    add_events,
+    count_events,
+    create_session,
+    end_session,
+    get_events,
+    get_session,
+)
 
 router = APIRouter(prefix="/sessions", tags=["sessions"])
 
@@ -38,5 +46,18 @@ def end(session_id: str, db: Session = Depends(get_db)) -> SessionEndOut:
     return SessionEndOut(
         session_id=session["session_id"],
         ended_at=session["ended_at"],
-        event_count=len(get_events(session_id)),
+        event_count=count_events(db, session_id),
+    )
+
+
+@router.get("/{session_id}/report", response_model=SessionReport)
+def report(session_id: str, db: Session = Depends(get_db)) -> SessionReport:
+    session = get_session(db, session_id)
+    if session is None:
+        raise HTTPException(status_code=404, detail="session not found")
+    events = get_events(db, session_id)
+    return SessionReport(
+        session=SessionOut(**session),
+        events=events,
+        event_count=len(events),
     )
