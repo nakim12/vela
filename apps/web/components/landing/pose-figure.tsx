@@ -1,66 +1,205 @@
-type Joint = { id: string; x: number; y: number; label?: string; severity?: "ok" | "warn" | "high" };
+ "use client";
 
-const joints: Joint[] = [
-  { id: "head", x: 198, y: 60 },
-  { id: "lShoulder", x: 168, y: 110, severity: "ok" },
-  { id: "rShoulder", x: 228, y: 110, severity: "ok" },
-  { id: "lElbow", x: 138, y: 168 },
-  { id: "rElbow", x: 258, y: 168 },
-  { id: "lWrist", x: 118, y: 220 },
-  { id: "rWrist", x: 278, y: 220 },
-  { id: "lHip", x: 178, y: 220, severity: "ok" },
-  { id: "rHip", x: 218, y: 220, severity: "ok" },
-  { id: "lKnee", x: 158, y: 312, severity: "high", label: "knee_cave  +8.4°" },
-  { id: "rKnee", x: 238, y: 312, severity: "warn" },
-  { id: "lAnkle", x: 168, y: 400, severity: "ok" },
-  { id: "rAnkle", x: 228, y: 400, severity: "ok" },
+import { useEffect, useMemo, useState } from "react";
+
+type Severity = "ok" | "warn" | "high";
+type JointId = "head" | "shoulder" | "elbow" | "wrist" | "hip" | "knee" | "ankle";
+
+type JointMeta = { id: JointId; severity?: Severity };
+type PoseFrame = Record<JointId, { x: number; y: number }>;
+type Point = { x: number; y: number };
+
+const CYCLE_MS = 4200;
+
+const joints: JointMeta[] = [
+  { id: "head" },
+  { id: "shoulder", severity: "ok" },
+  { id: "elbow" },
+  { id: "wrist" },
+  { id: "hip", severity: "ok" },
+  { id: "knee", severity: "high" },
+  { id: "ankle" },
 ];
 
-const bones: [string, string][] = [
-  ["head", "lShoulder"],
-  ["head", "rShoulder"],
-  ["lShoulder", "rShoulder"],
-  ["lShoulder", "lElbow"],
-  ["lElbow", "lWrist"],
-  ["rShoulder", "rElbow"],
-  ["rElbow", "rWrist"],
-  ["lShoulder", "lHip"],
-  ["rShoulder", "rHip"],
-  ["lHip", "rHip"],
-  ["lHip", "lKnee"],
-  ["lKnee", "lAnkle"],
-  ["rHip", "rKnee"],
-  ["rKnee", "rAnkle"],
+const bones: [JointId, JointId][] = [
+  ["head", "shoulder"],
+  ["shoulder", "elbow"],
+  ["elbow", "wrist"],
+  ["shoulder", "hip"],
+  ["hip", "knee"],
+  ["knee", "ankle"],
 ];
 
-const severityColor: Record<NonNullable<Joint["severity"]>, string> = {
+const BODY = {
+  shank: 86,
+  thigh: 88,
+  torso: 96,
+  neck: 54,
+  upperArm: 56,
+  forearm: 54,
+} as const;
+
+const ANKLE_ANCHOR: Point = { x: 224, y: 404 };
+
+const severityColor: Record<Severity, string> = {
   ok: "#a3e635",
   warn: "#facc15",
   high: "#f87171",
 };
+const nonCardJointColor = "#d4d4d8";
+
+type CardTone = {
+  fill: string;
+  stroke: string;
+  text: string;
+};
+
+function clamp01(v: number) {
+  return Math.max(0, Math.min(1, v));
+}
+
+function mix(a: number, b: number, t: number) {
+  return Math.round(a + (b - a) * t);
+}
+
+function toRgba(r: number, g: number, b: number, a: number) {
+  return `rgba(${r},${g},${b},${a})`;
+}
+
+function mixColor(
+  start: [number, number, number],
+  mid: [number, number, number],
+  end: [number, number, number],
+  t: number,
+) {
+  const clamped = clamp01(t);
+  if (clamped <= 0.5) {
+    const local = clamped * 2;
+    return [
+      mix(start[0], mid[0], local),
+      mix(start[1], mid[1], local),
+      mix(start[2], mid[2], local),
+    ] as const;
+  }
+  const local = (clamped - 0.5) * 2;
+  return [
+    mix(mid[0], end[0], local),
+    mix(mid[1], end[1], local),
+    mix(mid[2], end[2], local),
+  ] as const;
+}
+
+function toneFromSeverity(severity: number): CardTone {
+  // good -> warning -> risk (green -> yellow -> red)
+  const [r, g, b] = mixColor([163, 230, 53], [250, 204, 21], [248, 113, 113], severity);
+  return {
+    fill: toRgba(r, g, b, 0.12),
+    stroke: toRgba(r, g, b, 0.55),
+    text: toRgba(r, g, b, 1),
+  };
+}
+
+function lerp(a: number, b: number, t: number) {
+  return a + (b - a) * t;
+}
+
+function degToRad(deg: number) {
+  return (deg * Math.PI) / 180;
+}
+
+function pointFrom(origin: Point, length: number, angleDeg: number): Point {
+  const r = degToRad(angleDeg);
+  return {
+    x: origin.x + Math.cos(r) * length,
+    y: origin.y + Math.sin(r) * length,
+  };
+}
+
+function phaseDepth(progress: number) {
+  // 0 -> 1 -> 0 over each rep, smooth at the ends.
+  return 0.5 - 0.5 * Math.cos(progress * 2 * Math.PI);
+}
+
+function angleBetweenDeg(a: Point, b: Point, c: Point) {
+  const ab = { x: a.x - b.x, y: a.y - b.y };
+  const cb = { x: c.x - b.x, y: c.y - b.y };
+  const dot = ab.x * cb.x + ab.y * cb.y;
+  const magAb = Math.hypot(ab.x, ab.y);
+  const magCb = Math.hypot(cb.x, cb.y);
+  const cosine = Math.max(-1, Math.min(1, dot / (magAb * magCb)));
+  return (Math.acos(cosine) * 180) / Math.PI;
+}
+
+function samplePose(progress: number): PoseFrame {
+  const depth = phaseDepth(progress);
+
+  // Fixed-length kinematics, anchored foot.
+  const shinAngle = lerp(-86, -72, depth);
+  const thighAngle = lerp(-100, -132, depth);
+  const torsoAngle = lerp(-83, -60, depth);
+  const neckAngle = lerp(-83, -70, depth);
+  const upperArmAngle = lerp(63, 50, depth);
+  const forearmAngle = lerp(70, 58, depth);
+
+  const ankle = ANKLE_ANCHOR;
+  const knee = pointFrom(ankle, BODY.shank, shinAngle);
+  const hip = pointFrom(knee, BODY.thigh, thighAngle);
+  const shoulder = pointFrom(hip, BODY.torso, torsoAngle);
+  const head = pointFrom(shoulder, BODY.neck, neckAngle);
+  const elbow = pointFrom(shoulder, BODY.upperArm, upperArmAngle);
+  const wrist = pointFrom(elbow, BODY.forearm, forearmAngle);
+
+  return {
+    head,
+    shoulder,
+    elbow,
+    wrist,
+    hip,
+    knee,
+    ankle,
+  };
+}
 
 export function PoseFigure() {
-  const byId = Object.fromEntries(joints.map((j) => [j.id, j]));
+  const [progress, setProgress] = useState(0);
+
+  useEffect(() => {
+    let rafId = 0;
+    const start = performance.now();
+
+    const tick = (now: number) => {
+      const elapsed = (now - start) % CYCLE_MS;
+      setProgress(elapsed / CYCLE_MS);
+      rafId = requestAnimationFrame(tick);
+    };
+
+    rafId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafId);
+  }, []);
+
+  const pose = useMemo(() => samplePose(progress), [progress]);
+  const kneeAngle = Math.round(angleBetweenDeg(pose.hip, pose.knee, pose.ankle));
+  const torsoLean = Math.round(Math.abs(90 + (Math.atan2(pose.shoulder.y - pose.hip.y, pose.shoulder.x - pose.hip.x) * 180) / Math.PI));
+  const hipFlexion = Math.round(angleBetweenDeg(pose.shoulder, pose.hip, pose.knee));
+  const pulse = (Math.sin((progress * Math.PI * 2 * CYCLE_MS) / 800) + 1) / 2;
+  const highRadius = 10 + pulse * 8;
+  const highOpacity = 0.08 + pulse * 0.24;
+
+  const kneeSeverity = clamp01((160 - kneeAngle) / 40);
+  const torsoSeverity = clamp01((torsoLean - 24) / 16);
+  const hipSeverity = clamp01((hipFlexion - 100) / 24);
+
+  const kneeTone = toneFromSeverity(kneeSeverity);
+  const torsoTone = toneFromSeverity(torsoSeverity);
+  const hipTone = toneFromSeverity(hipSeverity);
+
   return (
     <svg
       viewBox="0 0 400 460"
       role="img"
-      aria-label="Annotated pose skeleton mid-squat"
+      aria-label="Animated side-view squat skeleton demo"
       className="h-full w-full"
     >
-      <defs>
-        <radialGradient id="poseGlow" cx="50%" cy="40%" r="55%">
-          <stop offset="0%" stopColor="rgba(163,230,53,0.20)" />
-          <stop offset="100%" stopColor="rgba(163,230,53,0)" />
-        </radialGradient>
-        <linearGradient id="boneGrad" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#a3e635" stopOpacity="0.95" />
-          <stop offset="100%" stopColor="#22d3ee" stopOpacity="0.85" />
-        </linearGradient>
-      </defs>
-
-      <rect x="0" y="0" width="400" height="460" fill="url(#poseGlow)" />
-
       <g stroke="rgba(244,244,245,0.06)" strokeWidth="1">
         {Array.from({ length: 9 }).map((_, i) => (
           <line key={`v${i}`} x1={i * 50} y1="0" x2={i * 50} y2="460" />
@@ -71,46 +210,39 @@ export function PoseFigure() {
       </g>
 
       <g
-        stroke="url(#boneGrad)"
-        strokeWidth="3"
+        stroke="rgba(228,228,231,0.28)"
+        strokeWidth="2"
         strokeLinecap="round"
-        opacity="0.95"
+        opacity="0.9"
       >
         {bones.map(([a, b]) => (
           <line
             key={`${a}-${b}`}
-            x1={byId[a].x}
-            y1={byId[a].y}
-            x2={byId[b].x}
-            y2={byId[b].y}
+            x1={pose[a].x}
+            y1={pose[a].y}
+            x2={pose[b].x}
+            y2={pose[b].y}
           />
         ))}
       </g>
 
       {joints.map((j) => {
-        const c = j.severity ? severityColor[j.severity] : "#e4e4e7";
+        const c = j.severity ? severityColor[j.severity] : nonCardJointColor;
         return (
           <g key={j.id}>
             {j.severity === "high" ? (
-              <circle cx={j.x} cy={j.y} r="14" fill={c} opacity="0.18">
-                <animate
-                  attributeName="r"
-                  values="10;18;10"
-                  dur="1.6s"
-                  repeatCount="indefinite"
-                />
-                <animate
-                  attributeName="opacity"
-                  values="0.35;0.05;0.35"
-                  dur="1.6s"
-                  repeatCount="indefinite"
-                />
-              </circle>
+              <circle
+                cx={pose[j.id].x}
+                cy={pose[j.id].y}
+                r={highRadius}
+                fill={c}
+                opacity={highOpacity}
+              />
             ) : null}
-            <circle cx={j.x} cy={j.y} r="5" fill={c} />
+            <circle cx={pose[j.id].x} cy={pose[j.id].y} r="5" fill={c} />
             <circle
-              cx={j.x}
-              cy={j.y}
+              cx={pose[j.id].x}
+              cy={pose[j.id].y}
               r="2"
               fill="#0a0a0a"
               opacity="0.7"
@@ -124,41 +256,38 @@ export function PoseFigure() {
         fontSize="11"
         fontWeight="500"
       >
-        <g transform="translate(36 296)">
+        <g transform={`translate(${pose.knee.x - 164} ${pose.knee.y - 12})`}>
           <rect
-            width="120"
+            width="138"
             height="26"
             rx="6"
-            fill="rgba(248,113,113,0.12)"
-            stroke="rgba(248,113,113,0.5)"
+            fill={kneeTone.fill}
+            stroke={kneeTone.stroke}
           />
-          <text x="10" y="17" fill="#fca5a5">
-            knee_cave  +8.4°
-          </text>
+          <text x="10" y="17" fill={kneeTone.text}>knee_angle</text>
+          <text x="92" y="17" fill={kneeTone.text}>{kneeAngle}°</text>
         </g>
-        <g transform="translate(252 102)">
+        <g transform={`translate(${pose.shoulder.x + 34} ${pose.shoulder.y - 30})`}>
           <rect
-            width="124"
+            width="132"
             height="26"
             rx="6"
-            fill="rgba(163,230,53,0.10)"
-            stroke="rgba(163,230,53,0.45)"
+            fill={torsoTone.fill}
+            stroke={torsoTone.stroke}
           />
-          <text x="10" y="17" fill="#bef264">
-            torso_angle  42°
-          </text>
+          <text x="10" y="17" fill={torsoTone.text}>torso_lean</text>
+          <text x="88" y="17" fill={torsoTone.text}>{torsoLean}°</text>
         </g>
-        <g transform="translate(38 196)">
+        <g transform={`translate(${pose.hip.x - 166} ${pose.hip.y - 26})`}>
           <rect
-            width="118"
+            width="140"
             height="26"
             rx="6"
-            fill="rgba(34,211,238,0.08)"
-            stroke="rgba(34,211,238,0.45)"
+            fill={hipTone.fill}
+            stroke={hipTone.stroke}
           />
-          <text x="10" y="17" fill="#67e8f9">
-            hip_depth  −38 cm
-          </text>
+          <text x="10" y="17" fill={hipTone.text}>hip_flexion</text>
+          <text x="90" y="17" fill={hipTone.text}>{hipFlexion}°</text>
         </g>
       </g>
     </svg>
