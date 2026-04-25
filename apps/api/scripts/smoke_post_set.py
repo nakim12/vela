@@ -21,6 +21,7 @@ import asyncio
 from agents.loops import post_set_loop
 from agents.runtime import ensure_assistant_for_user
 from bb import get_client
+from db import stubs as db_stubs
 from models.risk_event import RiskEvent
 
 USER_ID = "demo-user-1"
@@ -79,8 +80,15 @@ async def main() -> None:
         session_id=SESSION_ID,
         events=SAMPLE_EVENTS,
     )
-    print("\n=== Agent response ===\n")
+    print("\n=== Agent closing message ===\n")
     print(summary)
+
+    saved = db_stubs.get_session_summary(SESSION_ID)
+    print("\n=== Saved session summary (from write_session_summary) ===\n")
+    if saved:
+        print(saved)
+    else:
+        print("(no summary was saved -- agent did not call write_session_summary)")
 
 
 if __name__ == "__main__":
