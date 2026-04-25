@@ -13,8 +13,17 @@ from uuid import uuid4
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session as DBSession
 
-from db.models import Program, RiskEventRow, User, UserThreshold, WorkoutSession
+from db.models import (
+    Program,
+    RepRow,
+    RiskEventRow,
+    SetRow,
+    User,
+    UserThreshold,
+    WorkoutSession,
+)
 from models.risk_event import RiskEvent
+from models.session import RepIn
 
 
 def _serialize_session(s: WorkoutSession) -> dict[str, Any]:
@@ -271,3 +280,85 @@ def upsert_program(
     db.commit()
     db.refresh(row)
     return _serialize_program(row)
+
+
+def _serialize_rep(r: RepRow) -> dict[str, Any]:
+    return {
+        "rep_id": r.id,
+        "set_id": r.set_id,
+        "rep_index": r.rep_index,
+        "depth_cm": r.depth_cm,
+        "time_to_lift_ms": r.time_to_lift_ms,
+        "low_confidence": r.low_confidence,
+    }
+
+
+def _serialize_set(s: SetRow) -> dict[str, Any]:
+    return {
+        "set_id": s.id,
+        "session_id": s.session_id,
+        "set_index": s.set_index,
+        "weight_lb": s.weight_lb,
+        "rep_count": s.rep_count,
+        "started_at": s.started_at,
+        "ended_at": s.ended_at,
+        "reps": [_serialize_rep(r) for r in s.reps],
+    }
+
+
+def create_set(
+    db: DBSession,
+    session_id: str,
+    weight_lb: float,
+    rep_count: int,
+    started_at: datetime | None,
+    ended_at: datetime | None,
+    reps: list[RepIn],
+) -> dict[str, Any] | None:
+    """Create a set + its reps in one transaction.
+
+    Returns ``None`` if the parent session is missing (→ 404 at the route
+    layer). ``set_index`` is assigned as ``count(existing sets) + 1`` so
+    the browser doesn't need to know it. Reps cascade via the ORM
+    relationship.
+    """
+    if db.get(WorkoutSession, session_id) is None:
+        return None
+
+    existing_count = db.execute(
+        select(func.count(SetRow.id)).where(SetRow.session_id == session_id)
+    ).scalar_one()
+    set_index = int(existing_count) + 1
+
+    set_row = SetRow(
+        session_id=session_id,
+        set_index=set_index,
+        weight_lb=weight_lb,
+        rep_count=rep_count,
+        started_at=started_at or datetime.now(timezone.utc),
+        ended_at=ended_at,
+    )
+    for rep in reps:
+        set_row.reps.append(
+            RepRow(
+                rep_index=rep.rep_index,
+                depth_cm=rep.depth_cm,
+                time_to_lift_ms=rep.time_to_lift_ms,
+                low_confidence=rep.low_confidence,
+            )
+        )
+    db.add(set_row)
+    db.commit()
+    db.refresh(set_row)
+    return _serialize_set(set_row)
+
+
+def list_sets(db: DBSession, session_id: str) -> list[dict[str, Any]]:
+    """Return the session's sets (with nested reps) in chronological order."""
+    stmt = (
+        select(SetRow)
+        .where(SetRow.session_id == session_id)
+        .order_by(SetRow.set_index.asc())
+    )
+    rows = db.execute(stmt).scalars().all()
+    return [_serialize_set(s) for s in rows]

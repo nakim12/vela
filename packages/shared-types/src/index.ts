@@ -82,6 +82,55 @@ export type SessionEndOut = {
 };
 
 // ---------------------------------------------------------------------------
+// POST / GET /api/sessions/:id/sets
+// ---------------------------------------------------------------------------
+
+/** Per-rep telemetry batched from the browser at end-of-set. */
+export type RepIn = {
+  rep_index: number;
+  depth_cm?: number | null;
+  /** Ascent duration in ms. */
+  time_to_lift_ms?: number | null;
+  low_confidence?: boolean;
+};
+
+export type RepOut = {
+  rep_id: number;
+  set_id: number;
+  rep_index: number;
+  depth_cm: number | null;
+  time_to_lift_ms: number | null;
+  low_confidence: boolean;
+};
+
+/** Posted by the browser when a working set ends (6s of no reps, §6.3).
+ *  If ``reps`` is provided, its length must equal ``rep_count``. */
+export type SetCreate = {
+  weight_lb: number;
+  rep_count: number;
+  started_at?: IsoDateTime | null;
+  ended_at?: IsoDateTime | null;
+  reps?: RepIn[];
+};
+
+export type SetOut = {
+  set_id: number;
+  session_id: string;
+  /** 1-based within the parent session. Assigned server-side. */
+  set_index: number;
+  weight_lb: number;
+  rep_count: number;
+  started_at: IsoDateTime;
+  ended_at: IsoDateTime | null;
+  reps: RepOut[];
+};
+
+export type SetsResponse = {
+  session_id: string;
+  sets: SetOut[];
+};
+
+// ---------------------------------------------------------------------------
 // GET /api/sessions/:id/report
 // ---------------------------------------------------------------------------
 
@@ -89,6 +138,7 @@ export type SessionReport = {
   session: SessionOut;
   events: RiskEvent[];
   event_count: number;
+  sets: SetOut[];
 };
 
 // ---------------------------------------------------------------------------

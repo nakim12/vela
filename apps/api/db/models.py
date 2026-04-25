@@ -10,8 +10,8 @@ from datetime import datetime, timezone
 
 from typing import Any
 
-from sqlalchemy import JSON, DateTime, Float, ForeignKey, Integer, String, Text
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import JSON, Boolean, DateTime, Float, ForeignKey, Integer, String, Text
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base import Base
 
@@ -96,6 +96,57 @@ class Program(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=_utcnow
     )
+
+
+class SetRow(Base):
+    """One working set: a contiguous group of reps at a fixed weight.
+
+    ``set_index`` is 1-based within its parent session; the store layer
+    auto-assigns it to ``count(existing sets for session) + 1`` on insert
+    so the frontend doesn't have to manage it.
+    """
+
+    __tablename__ = "sets"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    session_id: Mapped[str] = mapped_column(
+        String, ForeignKey("sessions.id"), index=True
+    )
+    set_index: Mapped[int] = mapped_column(Integer)
+    weight_lb: Mapped[float] = mapped_column(Float)
+    rep_count: Mapped[int] = mapped_column(Integer)
+    started_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=_utcnow
+    )
+    ended_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+    reps: Mapped[list["RepRow"]] = relationship(
+        back_populates="set", cascade="all, delete-orphan", order_by="RepRow.rep_index"
+    )
+
+
+class RepRow(Base):
+    """Per-rep telemetry derived from the browser pose pipeline.
+
+    All metrics are optional because the rules engine may run with partial
+    data (e.g. no depth signal on a side-view deadlift). ``low_confidence``
+    is set when MediaPipe reports a low-visibility frame spanning this rep.
+    """
+
+    __tablename__ = "reps"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    set_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("sets.id", ondelete="CASCADE"), index=True
+    )
+    rep_index: Mapped[int] = mapped_column(Integer)
+    depth_cm: Mapped[float | None] = mapped_column(Float, nullable=True)
+    time_to_lift_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    low_confidence: Mapped[bool] = mapped_column(Boolean, default=False)
+
+    set: Mapped["SetRow"] = relationship(back_populates="reps")
 
 
 class RiskEventRow(Base):

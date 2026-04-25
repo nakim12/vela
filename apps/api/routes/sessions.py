@@ -13,15 +13,20 @@ from models.session import (
     SessionListResponse,
     SessionOut,
     SessionReport,
+    SetCreate,
+    SetOut,
+    SetsResponse,
 )
 from store import (
     add_events,
     count_events,
     create_session,
+    create_set,
     end_session,
     get_events,
     get_session,
     list_sessions,
+    list_sets,
 )
 
 router = APIRouter(prefix="/sessions", tags=["sessions"])
@@ -76,8 +81,56 @@ def report(session_id: str, db: Session = Depends(get_db)) -> SessionReport:
     if session is None:
         raise HTTPException(status_code=404, detail="session not found")
     events = get_events(db, session_id)
+    sets = list_sets(db, session_id)
     return SessionReport(
         session=SessionOut(**session),
         events=events,
         event_count=len(events),
+        sets=[SetOut(**s) for s in sets],
+    )
+
+
+@router.post("/{session_id}/sets", response_model=SetOut, status_code=201)
+def post_set(
+    session_id: str, body: SetCreate, db: Session = Depends(get_db)
+) -> SetOut:
+    """Persist a completed working set and its per-rep telemetry.
+
+    Called by the browser at end-of-set (no rep detected for 6s — see §6.3).
+    When ``reps`` are provided, their length must match ``rep_count`` so the
+    stored aggregate can't drift from the per-rep detail.
+    """
+    if body.reps and len(body.reps) != body.rep_count:
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                f"rep_count ({body.rep_count}) must match len(reps) "
+                f"({len(body.reps)}) when reps are provided"
+            ),
+        )
+    record = create_set(
+        db,
+        session_id=session_id,
+        weight_lb=body.weight_lb,
+        rep_count=body.rep_count,
+        started_at=body.started_at,
+        ended_at=body.ended_at,
+        reps=body.reps,
+    )
+    if record is None:
+        raise HTTPException(status_code=404, detail="session not found")
+    return SetOut(**record)
+
+
+@router.get("/{session_id}/sets", response_model=SetsResponse)
+def get_sets(
+    session_id: str, db: Session = Depends(get_db)
+) -> SetsResponse:
+    """List this session's sets (with nested reps) in chronological order."""
+    if get_session(db, session_id) is None:
+        raise HTTPException(status_code=404, detail="session not found")
+    rows = list_sets(db, session_id)
+    return SetsResponse(
+        session_id=session_id,
+        sets=[SetOut(**s) for s in rows],
     )

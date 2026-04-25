@@ -151,8 +151,10 @@ Swagger UI at `/docs` is the source of truth. Quick reference:
 | POST | `/api/sessions` | start a workout session |
 | GET | `/api/sessions?user_id=&lift=&limit=` | list a user's recent sessions |
 | POST | `/api/sessions/{id}/events` | batch of `RiskEvent`s from the browser |
+| POST | `/api/sessions/{id}/sets` | log a completed set + its per-rep telemetry |
+| GET | `/api/sessions/{id}/sets` | list the session's sets (with nested reps) |
 | POST | `/api/sessions/{id}/end` | mark session ended, returns event count |
-| GET | `/api/sessions/{id}/report` | session + its events for the post-set view |
+| GET | `/api/sessions/{id}/report` | session + events + sets for the post-set view |
 | GET | `/api/user/thresholds?user_id=` | list per-user rule threshold overrides |
 | PUT | `/api/user/thresholds/{rule_id}` | upsert an override (called by the agent) |
 | GET | `/api/user/programs?user_id=` | list agent-prescribed next-session targets per lift |
