@@ -13,7 +13,7 @@ from uuid import uuid4
 from sqlalchemy import select
 from sqlalchemy.orm import Session as DBSession
 
-from db.models import RiskEventRow, User, WorkoutSession
+from db.models import RiskEventRow, User, UserThreshold, WorkoutSession
 from models.risk_event import RiskEvent
 
 
@@ -120,3 +120,54 @@ def get_events(db: DBSession, session_id: str) -> list[RiskEvent]:
 def count_events(db: DBSession, session_id: str) -> int:
     stmt = select(RiskEventRow).where(RiskEventRow.session_id == session_id)
     return len(db.execute(stmt).scalars().all())
+
+
+def _serialize_threshold(t: UserThreshold) -> dict[str, Any]:
+    return {
+        "user_id": t.user_id,
+        "rule_id": t.rule_id,
+        "value": t.value,
+        "justification": t.justification,
+        "source_session_id": t.source_session_id,
+        "created_at": t.created_at,
+    }
+
+
+def list_thresholds(db: DBSession, user_id: str) -> list[dict[str, Any]]:
+    stmt = (
+        select(UserThreshold)
+        .where(UserThreshold.user_id == user_id)
+        .order_by(UserThreshold.rule_id.asc())
+    )
+    rows = db.execute(stmt).scalars().all()
+    return [_serialize_threshold(t) for t in rows]
+
+
+def upsert_threshold(
+    db: DBSession,
+    user_id: str,
+    rule_id: str,
+    value: float,
+    justification: str | None,
+    source_session_id: str | None,
+) -> dict[str, Any]:
+    _ensure_user(db, user_id)
+    existing = db.get(UserThreshold, (user_id, rule_id))
+    if existing is None:
+        row = UserThreshold(
+            user_id=user_id,
+            rule_id=rule_id,
+            value=value,
+            justification=justification,
+            source_session_id=source_session_id,
+        )
+        db.add(row)
+    else:
+        existing.value = value
+        existing.justification = justification
+        existing.source_session_id = source_session_id
+        existing.created_at = datetime.now(timezone.utc)
+        row = existing
+    db.commit()
+    db.refresh(row)
+    return _serialize_threshold(row)

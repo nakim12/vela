@@ -48,6 +48,23 @@ class WorkoutSession(Base):
     bb_thread_id: Mapped[str] = mapped_column(String)
 
 
+class UserThreshold(Base):
+    __tablename__ = "user_thresholds"
+
+    user_id: Mapped[str] = mapped_column(
+        String, ForeignKey("users.id"), primary_key=True
+    )
+    rule_id: Mapped[str] = mapped_column(String, primary_key=True)
+    value: Mapped[float] = mapped_column(Float)
+    justification: Mapped[str | None] = mapped_column(String, nullable=True)
+    source_session_id: Mapped[str | None] = mapped_column(
+        String, ForeignKey("sessions.id"), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=_utcnow
+    )
+
+
 class RiskEventRow(Base):
     __tablename__ = "risk_events"
 

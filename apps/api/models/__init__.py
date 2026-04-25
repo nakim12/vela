@@ -7,6 +7,7 @@ from .session import (
     SessionOut,
     SessionReport,
 )
+from .user import ThresholdOut, ThresholdsResponse, ThresholdUpsert
 
 __all__ = [
     "RiskEvent",
@@ -16,4 +17,7 @@ __all__ = [
     "EventsIn",
     "EventsAccepted",
     "SessionReport",
+    "ThresholdOut",
+    "ThresholdsResponse",
+    "ThresholdUpsert",
 ]
