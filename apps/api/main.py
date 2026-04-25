@@ -9,6 +9,7 @@ from db.session import engine
 from routes.health import router as health_router
 from routes.sessions import router as sessions_router
 from routes.user import router as user_router
+from ws.session import router as ws_session_router
 
 
 @asynccontextmanager
@@ -30,6 +31,7 @@ app.add_middleware(
 app.include_router(health_router, prefix="/api")
 app.include_router(sessions_router, prefix="/api")
 app.include_router(user_router, prefix="/api")
+app.include_router(ws_session_router)
 
 
 @app.get("/")
