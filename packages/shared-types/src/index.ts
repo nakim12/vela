@@ -197,3 +197,115 @@ export type ProgramUpsert = {
   sets: number;
   source_session_id?: string | null;
 };
+
+// ---------------------------------------------------------------------------
+// GET /api/sessions/:id/pre  (agent-driven, owned by BE-B)
+// ---------------------------------------------------------------------------
+
+/** Two-line "today's watch list" banner returned by the pre-session loop.
+ *  Line 1 covers injury / regression notes; line 2 covers mobility /
+ *  anthropometry. Either line may be `"No notable history."` when nothing
+ *  applies. The frontend should render `lines[0]` and `lines[1]` directly. */
+export type PreSessionBanner = {
+  session_id: string;
+  lift: Lift;
+  /** Raw 2-line markdown returned by the agent. */
+  banner: string;
+  /** `banner` split on newline, blank lines stripped. Always length 2 in
+   *  the happy path; may be shorter if the agent misformats. */
+  lines: string[];
+};
+
+// ---------------------------------------------------------------------------
+// GET /api/sessions/:id/memory_updates  (agent-driven, owned by BE-B)
+// ---------------------------------------------------------------------------
+
+/** A single Backboard memory the agent wrote during this session via the
+ *  `log_observation` tool (filtered by `metadata.session_id == session_id`).
+ *  Powers the "what I learned about you today" collapsible in the post-set
+ *  report (§6.3 §5 of the project plan). */
+export type MemoryUpdate = {
+  /** Backboard memory id. Stable across reads, useful for delete UX. */
+  id: string;
+  /** Tag from the agent's log_observation call (anthropometry, mobility,
+   *  injuries, sensitivity, lift_history, cue_preferences, threshold). May
+   *  be null if the agent forgot to set it. */
+  category: string | null;
+  content: string;
+  created_at: IsoDateTime;
+};
+
+export type MemoryUpdatesResponse = {
+  session_id: string;
+  /** Newest first. Empty when the agent didn't log anything this session. */
+  memory_updates: MemoryUpdate[];
+};
+
+// ---------------------------------------------------------------------------
+// GET /api/user/trends  (analytics, owned by BE-B)
+// ---------------------------------------------------------------------------
+
+/** One session's worth of risk-event counts grouped by `rule_id`.
+ *  Sessions with zero flagged events appear with an empty `event_counts`. */
+export type TrendSession = {
+  session_id: string;
+  started_at: IsoDateTime;
+  ended_at: IsoDateTime | null;
+  lift: Lift;
+  /** rule_id -> count of risk events flagged in this session.
+   *  Keys match `RiskEvent.rule_id` (e.g. KNEE_CAVE, FORWARD_DUMP, BUTT_WINK). */
+  event_counts: Record<string, number>;
+};
+
+/** Powers the §6.3 §4 long-term trend chart and the `/sessions` history view.
+ *  `sessions` is newest-first; the frontend should reverse for a left-to-right
+ *  chronological chart. */
+export type TrendsResponse = {
+  user_id: string;
+  /** Filter that was applied (`null` = all lifts). */
+  lift: Lift | null;
+  sessions: TrendSession[];
+};
+
+// ---------------------------------------------------------------------------
+// POST /api/coach/message  (agent-driven, owned by BE-B)
+// ---------------------------------------------------------------------------
+
+export type CoachMessageIn = {
+  /** Temporary stub until Clerk auth lands. */
+  user_id: string;
+  message: string;
+};
+
+export type CoachMessageOut = {
+  user_id: string;
+  /** Markdown body of the agent's reply. Render through any markdown lib. */
+  reply: string;
+};
+
+// ---------------------------------------------------------------------------
+// WebSocket /ws/sessions/:id  (in-set live cues, owned by BE-B)
+// ---------------------------------------------------------------------------
+
+/** Lifecycle for one set's WS connection:
+ *    1. Open the socket.
+ *    2. Wait for `{type: "ready"}` from the server.
+ *    3. Send `{type: "events", events: RiskEvent[]}` whenever the rules
+ *       engine flags something. Server replies `{type: "cue", text}`.
+ *    4. Optionally send `{type: "ping"}` for liveness; server replies
+ *       `{type: "pong"}`.
+ *    5. Close the socket when the set ends. */
+
+export type WsClientPing = { type: "ping" };
+export type WsClientEvents = { type: "events"; events: RiskEvent[] };
+export type WsClientFrame = WsClientPing | WsClientEvents;
+
+export type WsServerReady = { type: "ready"; session_id: string };
+export type WsServerCue = { type: "cue"; text: string };
+export type WsServerPong = { type: "pong" };
+export type WsServerError = { type: "error"; message: string };
+export type WsServerFrame =
+  | WsServerReady
+  | WsServerCue
+  | WsServerPong
+  | WsServerError;

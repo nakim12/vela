@@ -11,18 +11,34 @@ with BE-A's CRUD routes in ``routes/sessions.py``.
 from __future__ import annotations
 
 import logging
+from collections import Counter
+from datetime import datetime
+from typing import Any, Literal
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 
 from pydantic import BaseModel, Field
 
 from agents.loops import coach_chat_loop, pre_session_loop
 from bb import get_client
 from db import stubs as db_stubs
+from db.models import RiskEventRow, WorkoutSession
+from db.session import get_db
 
 log = logging.getLogger(__name__)
 
 router = APIRouter(tags=["agent"])
+
+
+# How many memories to pull per page when filtering for session-tagged
+# updates. The Backboard SDK has no server-side metadata filter, so we page
+# through all memories for the assistant and filter client-side. Demo
+# personas have <30 memories total today, so a single page is plenty;
+# kept paginated so this still works once Backboard memories grow.
+_MEMORY_PAGE_SIZE = 100
+_MEMORY_MAX_PAGES = 10
 
 
 class PreSessionBanner(BaseModel):
@@ -80,6 +96,192 @@ async def pre_session(session_id: str) -> PreSessionBanner:
         lift=session.lift,
         banner=cleaned,
         lines=lines,
+    )
+
+
+class MemoryUpdate(BaseModel):
+    id: str
+    category: str | None = Field(
+        default=None,
+        description="Tag from log_observation's metadata.category, when present.",
+    )
+    content: str
+    created_at: datetime
+
+
+class MemoryUpdatesResponse(BaseModel):
+    session_id: str
+    memory_updates: list[MemoryUpdate] = Field(
+        description="Newest first. Empty when the agent didn't log_observation."
+    )
+
+
+def _memory_session_id(meta: Any) -> str | None:
+    """Pull a stringly-typed session_id out of a Memory.metadata blob."""
+    if not isinstance(meta, dict):
+        return None
+    raw = meta.get("session_id")
+    return str(raw) if raw is not None else None
+
+
+def _memory_category(meta: Any) -> str | None:
+    if not isinstance(meta, dict):
+        return None
+    raw = meta.get("category")
+    return str(raw) if raw is not None else None
+
+
+@router.get(
+    "/sessions/{session_id}/memory_updates",
+    response_model=MemoryUpdatesResponse,
+    summary="Memories the agent wrote during this session (log_observation)",
+)
+async def memory_updates(session_id: str) -> MemoryUpdatesResponse:
+    """List Backboard memories tagged with this ``session_id``.
+
+    Powers the §6.3 "memory updates" collapsible: a transparent record of
+    everything the agent decided to remember about the lifter from this
+    session's telemetry. The agent writes these via the ``log_observation``
+    tool, which always stamps ``metadata.session_id`` onto the memory
+    (see ``agents/tools.py``).
+
+    The Backboard SDK has no server-side metadata filter, so we page
+    through ``get_memories`` and filter client-side. Memories are returned
+    newest-first to match the rest of the report timelines.
+
+    Returns an empty list (200, not 404) when no observations were logged —
+    that's a valid demo state ("nothing worth remembering this set").
+    """
+    try:
+        session = db_stubs.get_session(session_id)
+    except KeyError:
+        raise HTTPException(status_code=404, detail="session not found")
+
+    user = db_stubs.get_user(session.user_id)
+    assistant_id = user.backboard_assistant_id
+    if not assistant_id:
+        # User hasn't talked to the agent yet; no assistant means no memories.
+        return MemoryUpdatesResponse(session_id=session_id, memory_updates=[])
+
+    client = get_client()
+    matched: list[MemoryUpdate] = []
+    try:
+        for page in range(1, _MEMORY_MAX_PAGES + 1):
+            res = await client.get_memories(
+                assistant_id, page=page, page_size=_MEMORY_PAGE_SIZE
+            )
+            for mem in res.memories or []:
+                if _memory_session_id(mem.metadata) != session_id:
+                    continue
+                matched.append(
+                    MemoryUpdate(
+                        id=str(mem.id),
+                        category=_memory_category(mem.metadata),
+                        content=mem.content,
+                        created_at=mem.created_at,
+                    )
+                )
+            total_pages = getattr(res, "total_pages", 1) or 1
+            if page >= total_pages:
+                break
+    except Exception as e:
+        log.exception(
+            "memory_updates failed for session=%s assistant=%s",
+            session_id, assistant_id,
+        )
+        raise HTTPException(
+            status_code=502, detail=f"backboard_failed: {e}"
+        ) from e
+
+    matched.sort(key=lambda m: m.created_at, reverse=True)
+    return MemoryUpdatesResponse(session_id=session_id, memory_updates=matched)
+
+
+class TrendSession(BaseModel):
+    """One session's risk-event counts grouped by rule_id."""
+
+    session_id: str
+    started_at: datetime
+    ended_at: datetime | None = None
+    lift: str
+    event_counts: dict[str, int] = Field(
+        description="rule_id -> count of risk events flagged in this session.",
+    )
+
+
+class TrendsResponse(BaseModel):
+    user_id: str
+    lift: str | None = Field(
+        default=None,
+        description="Filter applied (None = all lifts mixed).",
+    )
+    sessions: list[TrendSession] = Field(
+        description=(
+            "Newest first. Powers the §6.3 long-term trend chart "
+            "('knee cave events down 40% over last 6 sessions'). "
+            "Frontend should reverse for left-to-right chronological display."
+        )
+    )
+
+
+@router.get(
+    "/user/trends",
+    response_model=TrendsResponse,
+    summary="Per-session rule-event counts for the trend chart",
+)
+def user_trends(
+    user_id: str,
+    lift: Literal["squat", "bench", "deadlift"] | None = None,
+    limit: int = Query(default=8, ge=1, le=50),
+    db: Session = Depends(get_db),
+) -> TrendsResponse:
+    """Return up to ``limit`` recent sessions with risk-event counts per rule.
+
+    Powers the §6.3 §4 "long-term trend" panel of the post-set report and
+    the same chart on the ``/sessions`` history page. Two-step query so the
+    counts come from a single round trip:
+
+      1. Pick the user's most-recent N sessions (optionally filter by lift).
+      2. Bulk-fetch all their risk events, group counts by (session, rule).
+
+    Sessions with zero flagged events still appear in the response (with an
+    empty ``event_counts`` dict) — those are the "clean session" wins worth
+    showing on the chart.
+    """
+    sess_stmt = (
+        select(WorkoutSession)
+        .where(WorkoutSession.user_id == user_id)
+        .order_by(WorkoutSession.started_at.desc())
+        .limit(limit)
+    )
+    if lift is not None:
+        sess_stmt = sess_stmt.where(WorkoutSession.lift == lift)
+
+    sessions = db.execute(sess_stmt).scalars().all()
+    if not sessions:
+        return TrendsResponse(user_id=user_id, lift=lift, sessions=[])
+
+    session_ids = [s.id for s in sessions]
+    evt_stmt = select(
+        RiskEventRow.session_id, RiskEventRow.rule_id
+    ).where(RiskEventRow.session_id.in_(session_ids))
+    counts: dict[str, Counter[str]] = {sid: Counter() for sid in session_ids}
+    for sid, rule in db.execute(evt_stmt).all():
+        counts[sid][rule] += 1
+
+    return TrendsResponse(
+        user_id=user_id,
+        lift=lift,
+        sessions=[
+            TrendSession(
+                session_id=s.id,
+                started_at=s.started_at,
+                ended_at=s.ended_at,
+                lift=s.lift,
+                event_counts=dict(counts[s.id]),
+            )
+            for s in sessions
+        ],
     )
 
 
