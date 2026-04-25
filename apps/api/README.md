@@ -96,8 +96,48 @@ The `--app-dir "$PWD"` is important when your repo path has spaces — the
 reload worker loses the CWD otherwise and fails with
 `Could not import module "main"`.
 
-Tables auto-create via `Base.metadata.create_all` on startup (see `main.py`
-lifespan hook). Alembic migrations are a TODO.
+The FastAPI lifespan hook runs `alembic upgrade head` on startup, so your
+database schema is always in sync with the ORM models when the server is
+up. No manual migration step required for normal development.
+
+---
+
+## Schema migrations (Alembic)
+
+Live under `apps/api/alembic/`. `env.py` pulls the DB URL from
+`db.session.DATABASE_URL`, so it picks up `apps/api/.env` automatically.
+
+**Normal case (ORM changes):**
+
+```bash
+# 1. edit db/models.py
+# 2. autogenerate a migration
+alembic revision --autogenerate -m "add <what you added>"
+# 3. review the generated file under alembic/versions/ — autogenerate is
+#    not always perfect (enums, indexes on JSON, etc.)
+# 4. restart the server; lifespan will apply the new migration automatically
+#    OR run it manually:
+alembic upgrade head
+```
+
+**First time on this branch with an existing DB:** `db/migrate.py` detects
+pre-Alembic databases (tables exist, no `alembic_version` row) and stamps
+them at head on first startup. You don't need to nuke your volume.
+
+**If you really want to nuke and start over:**
+
+```bash
+docker compose -f ../../infra/docker-compose.yml down -v
+docker compose -f ../../infra/docker-compose.yml up -d postgres
+```
+
+Other useful commands:
+
+```bash
+alembic current             # show which revision the DB is on
+alembic history             # list all migrations
+alembic downgrade -1        # roll back one migration
+```
 
 ---
 
@@ -127,17 +167,22 @@ that changes a pydantic model.
 
 ```
 apps/api/
-├── main.py             # FastAPI app + lifespan (table create_all)
+├── main.py             # FastAPI app + lifespan (alembic upgrade + seed)
 ├── config.py           # settings + .env loader helpers
 ├── store.py            # data-access layer (functions that take a DB session)
 ├── requirements.txt
 ├── .env.example        # copy to .env, never commit .env
+├── alembic.ini         # alembic CLI config
+├── alembic/
+│   ├── env.py          # migration env — reuses app's metadata + DATABASE_URL
+│   └── versions/       # one file per schema revision
 ├── db/
 │   ├── base.py         # SQLAlchemy declarative Base
 │   ├── session.py      # engine + SessionLocal + get_db() FastAPI dep
+│   ├── migrate.py      # run_migrations() — called from lifespan
 │   ├── models.py       # ORM models (User, WorkoutSession, RiskEventRow,
 │   │                   #   UserThreshold)
-│   └── stubs.py        # (Nathan) in-memory fixtures for agent dev
+│   └── stubs.py        # DB-backed shim for agent code (Nathan)
 ├── models/             # pydantic request/response models
 │   ├── risk_event.py
 │   ├── session.py
@@ -209,16 +254,16 @@ Your repo path probably has spaces. Always pass `--app-dir "$PWD"` when you
 launch uvicorn.
 
 **Tables look wrong after I changed a model**
-There are no migrations yet — the lifespan hook only runs `create_all`, which
-never alters existing tables. Nuke and recreate the dev DB:
+You probably forgot to generate a migration. From `apps/api/`:
 
 ```bash
-docker compose -f ../../infra/docker-compose.yml down -v postgres
-docker compose -f ../../infra/docker-compose.yml up -d postgres
+alembic revision --autogenerate -m "describe what you changed"
+# review the generated file, then restart uvicorn (lifespan applies it)
 ```
 
-(Alembic migrations are planned; until then, destructive resets are fine
-during the hackathon.)
+If autogenerate misses something (it can't see every subtlety — enums,
+partial indexes, JSON column defaults), edit the generated migration by
+hand. Restarting uvicorn is enough to apply — no manual `alembic upgrade`.
 
 **SQLite vs Postgres confusion**
 If you see a `vela.db` file appear in `apps/api/` unexpectedly, your

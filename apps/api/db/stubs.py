@@ -86,12 +86,15 @@ def get_user(user_id: str) -> StubUser:
         return _user_from_row(row)
 
 
-def set_user_assistant_id(user_id: str, assistant_id: str) -> None:
+def set_user_assistant_id(user_id: str, assistant_id: Any) -> None:
+    # Coerce to str defensively: the Backboard SDK returns UUID objects (not
+    # strings), and SQLAlchemy refuses to bind UUIDs to a VARCHAR column.
+    # The in-memory stubs swallowed it silently; the DB-backed version doesn't.
     with SessionLocal() as db:
         row = db.get(UserRow, user_id)
         if row is None:
             raise KeyError(f"unknown user: {user_id}")
-        row.backboard_assistant_id = assistant_id
+        row.backboard_assistant_id = str(assistant_id)
         db.commit()
 
 
@@ -104,12 +107,14 @@ def get_session(session_id: str) -> StubSession:
         return _session_from_row(row)
 
 
-def set_session_thread_id(session_id: str, thread_id: str) -> None:
+def set_session_thread_id(session_id: str, thread_id: Any) -> None:
+    # Same UUID-vs-str defensive coercion as set_user_assistant_id: Backboard
+    # Thread.thread_id is a UUID object, SQLAlchemy's VARCHAR binding rejects it.
     with SessionLocal() as db:
         row = db.get(SessionRow, session_id)
         if row is None:
             raise KeyError(f"unknown session: {session_id}")
-        row.bb_thread_id = thread_id
+        row.bb_thread_id = str(thread_id)
         db.commit()
 
 
