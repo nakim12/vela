@@ -8,7 +8,9 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from sqlalchemy import DateTime, Float, ForeignKey, Integer, String
+from typing import Any
+
+from sqlalchemy import JSON, DateTime, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .base import Base
@@ -29,6 +31,9 @@ class User(Base):
     backboard_assistant_id: Mapped[str | None] = mapped_column(
         String, nullable=True
     )
+    anthropometrics: Mapped[dict[str, Any] | None] = mapped_column(
+        JSON, nullable=True
+    )
 
 
 class WorkoutSession(Base):
@@ -46,6 +51,7 @@ class WorkoutSession(Base):
         DateTime(timezone=True), nullable=True
     )
     bb_thread_id: Mapped[str] = mapped_column(String)
+    summary_md: Mapped[str | None] = mapped_column(Text, nullable=True)
 
 
 class UserThreshold(Base):

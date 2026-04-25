@@ -20,6 +20,7 @@ class SessionOut(BaseModel):
     started_at: datetime
     ended_at: datetime | None = None
     bb_thread_id: str
+    summary_md: str | None = None
 
 
 class SessionEndOut(BaseModel):
