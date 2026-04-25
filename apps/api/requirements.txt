@@ -3,3 +3,4 @@ uvicorn[standard]>=0.32
 pydantic>=2
 pydantic-settings>=2
 backboard-sdk>=1.5
+sqlalchemy>=2.0

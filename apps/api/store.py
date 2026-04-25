@@ -1,8 +1,8 @@
-"""In-memory store for the Vela API (MVP).
+"""Data access layer for the Vela API.
 
-TODO(BE-A): replace with SQLAlchemy models + Alembic migrations backed by
-Postgres. Route handlers import only the functions in this module, so the
-DB swap is contained to a single file.
+Session CRUD is persisted to the DB (see apps/api/db/).
+Risk events are still held in-memory — the next increment moves them to
+a real `risk_events` table.
 """
 from __future__ import annotations
 
@@ -10,49 +10,74 @@ from datetime import datetime, timezone
 from typing import Any
 from uuid import uuid4
 
+from sqlalchemy.orm import Session as DBSession
+
+from db.models import User, WorkoutSession
 from models.risk_event import RiskEvent
 
-_sessions: dict[str, dict[str, Any]] = {}
 _events: dict[str, list[RiskEvent]] = {}
 
 
-def _utcnow() -> datetime:
-    return datetime.now(timezone.utc)
-
-
-def create_session(user_id: str, lift: str) -> dict[str, Any]:
-    session_id = str(uuid4())
-    record: dict[str, Any] = {
-        "session_id": session_id,
-        "user_id": user_id,
-        "lift": lift,
-        "started_at": _utcnow(),
-        "ended_at": None,
-        "bb_thread_id": f"thread_placeholder_{uuid4().hex[:12]}",
+def _serialize_session(s: WorkoutSession) -> dict[str, Any]:
+    return {
+        "session_id": s.id,
+        "user_id": s.user_id,
+        "lift": s.lift,
+        "started_at": s.started_at,
+        "ended_at": s.ended_at,
+        "bb_thread_id": s.bb_thread_id,
     }
-    _sessions[session_id] = record
-    _events[session_id] = []
-    return record
 
 
-def get_session(session_id: str) -> dict[str, Any] | None:
-    return _sessions.get(session_id)
+def _ensure_user(db: DBSession, user_id: str) -> User:
+    user = db.get(User, user_id)
+    if user is None:
+        user = User(id=user_id)
+        db.add(user)
+        db.flush()
+    return user
 
 
-def end_session(session_id: str) -> dict[str, Any] | None:
-    session = _sessions.get(session_id)
-    if session is None:
+def create_session(db: DBSession, user_id: str, lift: str) -> dict[str, Any]:
+    _ensure_user(db, user_id)
+    session = WorkoutSession(
+        id=str(uuid4()),
+        user_id=user_id,
+        lift=lift,
+        bb_thread_id=f"thread_placeholder_{uuid4().hex[:12]}",
+    )
+    db.add(session)
+    db.commit()
+    db.refresh(session)
+    _events.setdefault(session.id, [])
+    return _serialize_session(session)
+
+
+def get_session(db: DBSession, session_id: str) -> dict[str, Any] | None:
+    s = db.get(WorkoutSession, session_id)
+    return _serialize_session(s) if s else None
+
+
+def end_session(db: DBSession, session_id: str) -> dict[str, Any] | None:
+    s = db.get(WorkoutSession, session_id)
+    if s is None:
         return None
-    if session["ended_at"] is None:
-        session["ended_at"] = _utcnow()
-    return session
+    if s.ended_at is None:
+        s.ended_at = datetime.now(timezone.utc)
+        db.commit()
+        db.refresh(s)
+    return _serialize_session(s)
 
 
-def add_events(session_id: str, events: list[RiskEvent]) -> int | None:
-    if session_id not in _events:
+def add_events(
+    db: DBSession, session_id: str, events: list[RiskEvent]
+) -> int | None:
+    s = db.get(WorkoutSession, session_id)
+    if s is None:
         return None
-    _events[session_id].extend(events)
-    return len(_events[session_id])
+    bucket = _events.setdefault(session_id, [])
+    bucket.extend(events)
+    return len(bucket)
 
 
 def get_events(session_id: str) -> list[RiskEvent]:

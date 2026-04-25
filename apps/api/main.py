@@ -1,11 +1,23 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from db import models  # noqa: F401 — register ORM classes with Base
+from db.base import Base
+from db.session import engine
 from routes.health import router as health_router
 from routes.sessions import router as sessions_router
 from routes.user import router as user_router
 
-app = FastAPI(title="Vela API", version="0.1.0")
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    Base.metadata.create_all(bind=engine)
+    yield
+
+
+app = FastAPI(title="Vela API", version="0.1.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,

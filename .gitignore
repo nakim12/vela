@@ -3,6 +3,13 @@ __pycache__/
 *.py[codz]
 *$py.class
 
+# Local dev databases
+*.db
+*.db-journal
+
+# Python virtualenv
+apps/api/.venv/
+
 # C extensions
 *.so
 
