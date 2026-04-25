@@ -30,11 +30,20 @@ async def post_set_loop(
         "events": [e.model_dump() for e in events],
     }
     prompt = (
-        "End of set. Telemetry below. Produce 2-3 personalized cues for the "
-        "next set, cite biomechanical reasoning, and call write_session_summary "
-        "with the full markdown report. If you observe a pattern that should "
-        "be remembered, call log_observation. If a default threshold is "
-        "consistently exceeded without injury risk, propose update_threshold.\n\n"
+        "End of set. Telemetry below.\n\n"
+        "REQUIRED workflow before write_session_summary:\n"
+        "  1. Call query_user_kg for any rule_id you want to personalize.\n"
+        "  2. Call search_research at least once per distinct rule_id in "
+        "the events (e.g. KNEE_CAVE, FORWARD_DUMP). Use the returned text "
+        "to ground your reasoning and quote the source filename in the "
+        "summary's biomechanics section.\n"
+        "  3. If you observe a pattern that should be remembered, call "
+        "log_observation.\n"
+        "  4. If a default threshold is consistently exceeded without "
+        "injury risk, propose update_threshold.\n"
+        "  5. Call write_session_summary with the full markdown report. "
+        "The report must include 2-3 personalized cues and a 'Sources' "
+        "section listing the corpus filenames you cited.\n\n"
         f"```json\n{json.dumps(payload, indent=2)}\n```"
     )
     return await run_until_done(
