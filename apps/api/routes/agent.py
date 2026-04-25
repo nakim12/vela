@@ -21,11 +21,12 @@ from sqlalchemy.orm import Session
 
 from pydantic import BaseModel, Field
 
-from agents.loops import coach_chat_loop, pre_session_loop
+from agents.loops import coach_chat_loop, post_set_loop, pre_session_loop
 from bb import get_client
 from db import stubs as db_stubs
 from db.models import RiskEventRow, WorkoutSession
 from db.session import get_db
+from store import get_events as store_get_events
 
 log = logging.getLogger(__name__)
 
@@ -195,6 +196,96 @@ async def memory_updates(session_id: str) -> MemoryUpdatesResponse:
 
     matched.sort(key=lambda m: m.created_at, reverse=True)
     return MemoryUpdatesResponse(session_id=session_id, memory_updates=matched)
+
+
+class PostSetSummaryResponse(BaseModel):
+    session_id: str
+    summary_md: str = Field(
+        description="Markdown report from the agent. Same content the "
+        "write_session_summary tool persisted to sessions.summary_md."
+    )
+    event_count: int = Field(
+        description="How many risk events the agent reasoned over."
+    )
+    generated: bool = Field(
+        description="True if we ran the agent on this call, False if we "
+        "returned the previously-cached summary."
+    )
+
+
+@router.post(
+    "/sessions/{session_id}/post_set_summary",
+    response_model=PostSetSummaryResponse,
+    summary="Run the post-set agent loop and return the markdown report",
+)
+async def post_set_summary(
+    session_id: str,
+    force: bool = Query(
+        default=False,
+        description="If true, re-run the agent even when a summary is cached. "
+        "Costs LLM credits; mainly useful for re-rolling cues during demos.",
+    ),
+    db: Session = Depends(get_db),
+) -> PostSetSummaryResponse:
+    """Generate (or return cached) the post-set markdown report for a session.
+
+    Closes the §13 demo loop: after the browser finishes uploading a video
+    and POSTing all detected risk events, FE calls this endpoint to get the
+    markdown that powers the post-set report card. By default this is
+    idempotent — once ``sessions.summary_md`` is set, subsequent calls
+    return it without re-running the agent. Pass ``?force=true`` to re-roll.
+
+    The agent loop itself (``post_set_loop``) handles tool dispatch,
+    persistence, and ``recommend_load`` — this route just gathers the
+    inputs and returns the output. See ``agents/loops.py`` for the prompt
+    + workflow contract.
+    """
+    session = db.get(WorkoutSession, session_id)
+    if session is None:
+        raise HTTPException(status_code=404, detail="session not found")
+
+    events = store_get_events(db, session_id)
+
+    if session.summary_md and not force:
+        return PostSetSummaryResponse(
+            session_id=session_id,
+            summary_md=session.summary_md,
+            event_count=len(events),
+            generated=False,
+        )
+
+    client = get_client()
+    try:
+        await post_set_loop(
+            client,
+            user_id=session.user_id,
+            session_id=session_id,
+            events=events,
+        )
+    except Exception as e:
+        log.exception("post_set_loop failed for session %s", session_id)
+        raise HTTPException(
+            status_code=502, detail=f"agent_failed: {e}"
+        ) from e
+
+    # ``write_session_summary`` (one of the agent's required tools) persists
+    # the markdown to sessions.summary_md before the loop returns. We re-read
+    # from disk rather than trusting the loop's return value so the response
+    # matches what /sessions/{id}/report would later show.
+    summary = db_stubs.get_session_summary(session_id)
+    if not summary:
+        # Agent skipped write_session_summary somehow. Surface this loudly so
+        # we notice in smoke tests / the demo rather than returning silence.
+        raise HTTPException(
+            status_code=502,
+            detail="agent_failed: post_set_loop did not persist a summary",
+        )
+    return PostSetSummaryResponse(
+        session_id=session_id,
+        summary_md=summary,
+        event_count=len(events),
+        generated=True,
+    )
 
 
 class TrendSession(BaseModel):
