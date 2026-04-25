@@ -217,6 +217,26 @@ export type PreSessionBanner = {
 };
 
 // ---------------------------------------------------------------------------
+// POST /api/sessions/:id/post_set_summary  (agent-driven, owned by BE-B)
+// ---------------------------------------------------------------------------
+
+/** Response from `POST /api/sessions/:id/post_set_summary`.
+ *  Idempotent by default: once `summary_md` is persisted on the session,
+ *  subsequent calls return it without re-running the agent. Pass
+ *  `?force=true` in the request to re-roll a fresh summary. */
+export type PostSetSummaryResponse = {
+  session_id: string;
+  /** Markdown body of the agent's report. Render through any markdown lib.
+   *  Always includes a "Sources" section listing corpus filenames the
+   *  agent cited (see post_set_loop's prompt contract). */
+  summary_md: string;
+  /** How many risk events the agent reasoned over for this report. */
+  event_count: number;
+  /** True when the agent ran on this call; false when we returned cache. */
+  generated: boolean;
+};
+
+// ---------------------------------------------------------------------------
 // GET /api/sessions/:id/memory_updates  (agent-driven, owned by BE-B)
 // ---------------------------------------------------------------------------
 

@@ -5,6 +5,7 @@ import json
 import logging
 import os
 from typing import Any
+from uuid import UUID
 
 from backboard import BackboardClient
 
@@ -14,6 +15,22 @@ from db import stubs as db_stubs
 
 log = logging.getLogger(__name__)
 DEBUG_AGENT = os.environ.get("DEBUG_AGENT") == "1"
+
+
+def _is_real_thread_id(value: str | None) -> bool:
+    """Backboard requires real UUIDs for thread_id. Some session rows are
+    created with placeholder strings (see store.create_session, which writes
+    ``thread_placeholder_<hex>`` so the column can be NOT NULL before the
+    first agent run). Treat those as "no thread yet" so we create a real one
+    on the first agent call and persist it back via set_session_thread_id.
+    """
+    if not value:
+        return False
+    try:
+        UUID(str(value))
+    except (TypeError, ValueError):
+        return False
+    return True
 
 
 async def ensure_assistant_for_user(
@@ -37,7 +54,7 @@ async def ensure_thread_for_session(
     client: BackboardClient, session_id: str, assistant_id: str
 ) -> str:
     session = db_stubs.get_session(session_id)
-    if session.bb_thread_id:
+    if _is_real_thread_id(session.bb_thread_id):
         return session.bb_thread_id
 
     thread = await client.create_thread(assistant_id)
