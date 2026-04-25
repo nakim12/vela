@@ -25,7 +25,7 @@ function GithubMark({ className }: { className?: string }) {
   );
 }
 
-import { GridBackdrop } from "@/components/landing/grid-backdrop";
+import { BackgroundPaths } from "@/components/ui/background-paths";
 import { PoseFigure } from "@/components/landing/pose-figure";
 
 const navLinks = [
@@ -136,7 +136,7 @@ const knownLifterCues = [
 
 export default function Home() {
   return (
-    <div className="relative min-h-screen overflow-hidden bg-zinc-950 text-zinc-100 selection:bg-lime-300/30 selection:text-lime-100">
+    <div className="relative min-h-screen overflow-hidden bg-zinc-950 text-zinc-100 selection:bg-sky-300/20 selection:text-sky-50">
       <SiteNav />
       <Hero />
       <StatsStrip />
@@ -157,8 +157,8 @@ function SiteNav() {
     <header className="sticky top-0 z-30 border-b border-white/5 bg-zinc-950/70 backdrop-blur-xl">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3.5">
         <Link href="/" className="group inline-flex items-center gap-2.5">
-          <span className="grid size-7 place-items-center rounded-md border border-lime-400/30 bg-lime-400/10 text-lime-300">
-            <span className="size-1.5 rounded-full bg-lime-400 shadow-[0_0_12px_rgba(163,230,53,0.7)]" />
+          <span className="grid size-7 place-items-center rounded-md border border-sky-400/30 bg-sky-400/10 text-sky-300">
+            <span className="size-1.5 rounded-full bg-sky-400 shadow-[0_0_10px_rgba(56,189,248,0.5)]" />
           </span>
           <span className="text-sm font-semibold tracking-tight">
             Vela
@@ -188,7 +188,7 @@ function SiteNav() {
           </a>
           <Link
             href="/lift/squat"
-            className="group inline-flex items-center gap-1.5 rounded-md bg-lime-400 px-3 py-1.5 text-sm font-medium text-zinc-950 shadow-[0_0_24px_rgba(163,230,53,0.25)] transition hover:bg-lime-300"
+            className="group inline-flex items-center gap-1.5 rounded-md bg-sky-400 px-3 py-1.5 text-sm font-medium text-zinc-950 shadow-[0_0_16px_rgba(56,189,248,0.2)] transition hover:bg-sky-300"
           >
             Try the demo
             <ArrowRight className="size-3.5 transition group-hover:translate-x-0.5" />
@@ -202,16 +202,16 @@ function SiteNav() {
 function Hero() {
   return (
     <section className="relative isolate">
-      <GridBackdrop />
+      <BackgroundPaths />
       <div className="mx-auto grid max-w-6xl grid-cols-1 gap-12 px-6 pt-20 pb-24 lg:grid-cols-[1.1fr_1fr] lg:gap-16 lg:pt-28 lg:pb-32">
         <div className="relative z-10 flex flex-col justify-center">
           <div className="inline-flex w-fit items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-zinc-300">
-            <span className="size-1.5 rounded-full bg-lime-400 shadow-[0_0_8px_rgba(163,230,53,0.9)]" />
+            <span className="size-1.5 rounded-full bg-sky-400 shadow-[0_0_8px_rgba(56,189,248,0.65)]" />
             Built for Backboard × Claude
           </div>
           <h1 className="mt-5 text-balance text-4xl font-semibold leading-[1.05] tracking-tight sm:text-5xl lg:text-6xl">
             Form coaching that{" "}
-            <span className="bg-gradient-to-br from-lime-200 via-lime-300 to-emerald-400 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-br from-sky-100 via-sky-300 to-blue-400 bg-clip-text text-transparent">
               knows your body.
             </span>
           </h1>
@@ -224,7 +224,7 @@ function Hero() {
           <div className="mt-8 flex flex-wrap items-center gap-3">
             <Link
               href="/lift/squat"
-              className="group inline-flex items-center gap-2 rounded-lg bg-lime-400 px-5 py-2.5 text-sm font-semibold text-zinc-950 shadow-[0_0_30px_rgba(163,230,53,0.25)] transition hover:bg-lime-300"
+              className="group inline-flex items-center gap-2 rounded-lg bg-sky-400 px-5 py-2.5 text-sm font-semibold text-zinc-950 shadow-[0_0_18px_rgba(56,189,248,0.2)] transition hover:bg-sky-300"
             >
               Try the squat demo
               <ArrowRight className="size-4 transition group-hover:translate-x-0.5" />
@@ -246,21 +246,21 @@ function Hero() {
 
           <div className="mt-10 flex flex-wrap items-center gap-x-6 gap-y-3 text-xs text-zinc-500">
             <span className="inline-flex items-center gap-2">
-              <ShieldCheck className="size-3.5 text-lime-400/80" /> Pose runs
+              <ShieldCheck className="size-3.5 text-sky-400/80" /> Pose runs
               entirely on-device
             </span>
             <span className="inline-flex items-center gap-2">
-              <ShieldCheck className="size-3.5 text-lime-400/80" /> Memory is
+              <ShieldCheck className="size-3.5 text-sky-400/80" /> Memory is
               yours, exportable, deletable
             </span>
           </div>
         </div>
 
         <div className="relative">
-          <div className="relative mx-auto aspect-[4/5] w-full max-w-md overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-zinc-900 to-zinc-950 shadow-[0_30px_120px_-30px_rgba(163,230,53,0.25)]">
+          <div className="relative mx-auto aspect-[4/5] w-full max-w-md overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-zinc-900 to-zinc-950 shadow-[0_24px_90px_-30px_rgba(56,189,248,0.22)]">
             <div className="absolute inset-x-0 top-0 z-10 flex items-center justify-between border-b border-white/5 bg-zinc-950/60 px-4 py-2.5 backdrop-blur">
               <div className="flex items-center gap-2 text-xs text-zinc-400">
-                <span className="size-2 rounded-full bg-lime-400 shadow-[0_0_8px_rgba(163,230,53,0.9)]" />
+                <span className="size-2 rounded-full bg-sky-400 shadow-[0_0_8px_rgba(56,189,248,0.7)]" />
                 live · squat · rep 4
               </div>
               <div className="font-mono text-[10px] tracking-widest text-zinc-500">
@@ -301,7 +301,7 @@ function Hero() {
               this session
             </p>
             <p className="mt-1 text-xs text-zinc-300">
-              Knee cave events <span className="text-lime-400">↓ 40%</span> vs
+              Knee cave events <span className="text-sky-400">↓ 40%</span> vs
               last week
             </p>
           </div>
@@ -332,7 +332,7 @@ function Problem() {
   return (
     <section className="relative px-6 py-24 sm:py-28">
       <div className="mx-auto max-w-4xl text-center">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-lime-400/90">
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-400/90">
           The problem
         </p>
         <h2 className="mt-4 text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
@@ -372,7 +372,7 @@ function HowItWorks() {
             >
               <div className="flex items-center justify-between">
                 <span className="font-mono text-xs text-zinc-500">{n}</span>
-                <span className="grid size-8 place-items-center rounded-md border border-white/10 bg-white/5 text-lime-300">
+                <span className="grid size-8 place-items-center rounded-md border border-white/10 bg-white/5 text-sky-300">
                   <Icon className="size-4" />
                 </span>
               </div>
@@ -382,7 +382,7 @@ function HowItWorks() {
               <p className="mt-2 text-sm leading-relaxed text-zinc-400">
                 {body}
               </p>
-              <div className="pointer-events-none absolute inset-x-0 -bottom-px h-px bg-gradient-to-r from-transparent via-lime-400/40 to-transparent opacity-0 transition group-hover:opacity-100" />
+              <div className="pointer-events-none absolute inset-x-0 -bottom-px h-px bg-gradient-to-r from-transparent via-sky-400/40 to-transparent opacity-0 transition group-hover:opacity-100" />
             </div>
           ))}
         </div>
@@ -410,7 +410,7 @@ function FeedbackChannels() {
               className="relative flex flex-col rounded-xl border border-white/10 bg-zinc-900/40 p-6 backdrop-blur"
             >
               <div className="flex items-center justify-between">
-                <span className="grid size-9 place-items-center rounded-md border border-lime-400/20 bg-lime-400/10 text-lime-300">
+                <span className="grid size-9 place-items-center rounded-md border border-sky-400/20 bg-sky-400/10 text-sky-300">
                   <Icon className="size-4" />
                 </span>
                 <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-zinc-400">
@@ -492,7 +492,7 @@ function CueCard({
       className={
         "relative overflow-hidden rounded-2xl border p-6 " +
         (accent
-          ? "border-lime-400/30 bg-gradient-to-br from-lime-400/[0.06] to-emerald-500/[0.04]"
+          ? "border-sky-400/30 bg-gradient-to-br from-sky-400/[0.06] to-blue-500/[0.05]"
           : "border-white/10 bg-white/[0.02]")
       }
     >
@@ -501,7 +501,7 @@ function CueCard({
           <p
             className={
               "text-sm font-semibold " +
-              (accent ? "text-lime-300" : "text-zinc-200")
+              (accent ? "text-sky-300" : "text-zinc-200")
             }
           >
             {label}
@@ -512,7 +512,7 @@ function CueCard({
           className={
             "rounded-full px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider " +
             (accent
-              ? "border border-lime-400/40 bg-lime-400/10 text-lime-200"
+              ? "border border-sky-400/40 bg-sky-400/10 text-sky-200"
               : "border border-white/10 bg-white/5 text-zinc-400")
           }
         >
@@ -529,7 +529,7 @@ function CueCard({
               className={
                 "mt-0.5 grid size-5 shrink-0 place-items-center rounded-md " +
                 (accent
-                  ? "bg-lime-400/20 text-lime-300"
+                  ? "bg-sky-400/20 text-sky-300"
                   : "bg-white/10 text-zinc-400")
               }
             >
@@ -546,7 +546,7 @@ function CueCard({
 function KGFact({ category, fact }: { category: string; fact: string }) {
   return (
     <div className="rounded-xl border border-white/10 bg-zinc-950/50 p-4">
-      <p className="font-mono text-[10px] uppercase tracking-widest text-lime-400/80">
+      <p className="font-mono text-[10px] uppercase tracking-widest text-sky-400/80">
         {category}
       </p>
       <p className="mt-2 text-sm leading-relaxed text-zinc-300">{fact}</p>
@@ -570,7 +570,7 @@ function BigThree() {
           {lifts.map((lift) => (
             <div
               key={lift.name}
-              className="group relative flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-b from-zinc-900/60 to-zinc-950/60 p-6 transition hover:border-lime-400/30"
+              className="group relative flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-b from-zinc-900/60 to-zinc-950/60 p-6 transition hover:border-sky-400/30"
             >
               <div className="flex items-center justify-between">
                 <h3 className="text-xl font-semibold tracking-tight text-zinc-50">
@@ -583,14 +583,14 @@ function BigThree() {
               <ul className="mt-5 space-y-2 text-sm text-zinc-400">
                 {lift.rules.map((r) => (
                   <li key={r} className="flex items-start gap-2">
-                    <span className="mt-1.5 size-1 shrink-0 rounded-full bg-lime-400/70" />
+                    <span className="mt-1.5 size-1 shrink-0 rounded-full bg-sky-400/70" />
                     {r}
                   </li>
                 ))}
               </ul>
               <Link
                 href={`/lift/${lift.name.toLowerCase()}`}
-                className="mt-6 inline-flex w-fit items-center gap-1.5 text-sm font-medium text-lime-300 transition hover:text-lime-200"
+                className="mt-6 inline-flex w-fit items-center gap-1.5 text-sm font-medium text-sky-300 transition hover:text-sky-200"
               >
                 Try {lift.name.toLowerCase()} live
                 <ArrowRight className="size-3.5 transition group-hover:translate-x-0.5" />
@@ -658,14 +658,14 @@ function ArchPanel({
       className={
         "relative overflow-hidden rounded-2xl border p-6 sm:p-8 " +
         (accent
-          ? "border-lime-400/25 bg-gradient-to-br from-lime-400/[0.05] to-zinc-950"
+          ? "border-sky-400/25 bg-gradient-to-br from-sky-400/[0.05] to-zinc-950"
           : "border-white/10 bg-zinc-900/40")
       }
     >
       <p
         className={
           "font-mono text-[11px] uppercase tracking-widest " +
-          (accent ? "text-lime-300" : "text-zinc-500")
+          (accent ? "text-sky-300" : "text-zinc-500")
         }
       >
         {tag}
@@ -679,7 +679,7 @@ function ArchPanel({
             <span
               className={
                 "mt-2 size-1.5 shrink-0 rounded-full " +
-                (accent ? "bg-lime-400" : "bg-zinc-500")
+                (accent ? "bg-sky-400" : "bg-zinc-500")
               }
             />
             {it}
@@ -699,10 +699,10 @@ function FinalCta() {
           className="absolute inset-0 -z-10 opacity-70"
           style={{
             background:
-              "radial-gradient(ellipse 60% 80% at 80% 0%, rgba(163,230,53,0.18), transparent 60%), radial-gradient(ellipse 60% 80% at 0% 100%, rgba(34,211,238,0.10), transparent 60%)",
+              "radial-gradient(ellipse 60% 80% at 80% 0%, rgba(56,189,248,0.16), transparent 60%), radial-gradient(ellipse 60% 80% at 0% 100%, rgba(59,130,246,0.12), transparent 60%)",
           }}
         />
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-lime-400/90">
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-400/90">
           Ready when you are
         </p>
         <h2 className="mt-4 max-w-2xl text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
@@ -715,7 +715,7 @@ function FinalCta() {
         <div className="mt-8 flex flex-wrap items-center gap-3">
           <Link
             href="/lift/squat"
-            className="group inline-flex items-center gap-2 rounded-lg bg-lime-400 px-5 py-2.5 text-sm font-semibold text-zinc-950 shadow-[0_0_30px_rgba(163,230,53,0.25)] transition hover:bg-lime-300"
+            className="group inline-flex items-center gap-2 rounded-lg bg-sky-400 px-5 py-2.5 text-sm font-semibold text-zinc-950 shadow-[0_0_18px_rgba(56,189,248,0.2)] transition hover:bg-sky-300"
           >
             Start a squat session
             <ArrowRight className="size-4 transition group-hover:translate-x-0.5" />
@@ -744,8 +744,8 @@ function SiteFooter() {
     <footer className="border-t border-white/5 px-6 py-10">
       <div className="mx-auto flex max-w-6xl flex-col items-start justify-between gap-6 sm:flex-row sm:items-center">
         <div className="flex items-center gap-3 text-sm text-zinc-500">
-          <span className="grid size-6 place-items-center rounded-md border border-lime-400/30 bg-lime-400/10">
-            <span className="size-1.5 rounded-full bg-lime-400" />
+          <span className="grid size-6 place-items-center rounded-md border border-sky-400/30 bg-sky-400/10">
+            <span className="size-1.5 rounded-full bg-sky-400" />
           </span>
           <span>
             Vela · MediaPipe + Claude + Backboard · built for lifters who train
@@ -782,7 +782,7 @@ function SectionHeader({
 }) {
   return (
     <div className="mx-auto max-w-3xl text-center">
-      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-lime-400/90">
+      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-400/90">
         {eyebrow}
       </p>
       <h2 className="mt-4 text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
