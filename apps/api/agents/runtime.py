@@ -45,6 +45,26 @@ async def ensure_thread_for_session(
     return thread.thread_id
 
 
+# Coach-chat threads aren't tied to a workout session, so they don't live in
+# the sessions table. Cache one per user in-process; resets on uvicorn restart
+# (acceptable for MVP — Backboard memories persist across restarts anyway, so
+# a fresh thread on the same assistant still has full personalization).
+_COACH_THREADS: dict[str, str] = {}
+
+
+async def ensure_coach_thread_for_user(
+    client: BackboardClient, user_id: str, assistant_id: str
+) -> str:
+    cached = _COACH_THREADS.get(user_id)
+    if cached:
+        return cached
+
+    thread = await client.create_thread(assistant_id)
+    thread_id = str(thread.thread_id)
+    _COACH_THREADS[user_id] = thread_id
+    return thread_id
+
+
 def _tool_call_to_dict(tc: Any) -> dict[str, Any]:
     """Normalise a ToolCall (pydantic model OR raw dict) to a plain dict."""
     if isinstance(tc, dict):
