@@ -25,7 +25,15 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Camera, Loader2, Play, Square, Video } from "lucide-react";
+import {
+  Camera,
+  Loader2,
+  Play,
+  Square,
+  Video,
+  Volume2,
+  VolumeX,
+} from "lucide-react";
 import type { Lift, RiskEvent } from "@vela/shared-types";
 
 import { RiskBadge } from "@/components/RiskBadge";
@@ -39,6 +47,8 @@ import {
 import { getPoseLandmarker, type PoseFrame } from "@/lib/pose/detector";
 import { drawPose, landmarksForRule } from "@/lib/pose/draw";
 import { createEngine, type RulesEngine } from "@/lib/rules/engine";
+import { getDefaultCue } from "@/lib/voice/cues";
+import { cancelSpeech, resetSpeechCooldown, speak, warmUpSpeech } from "@/lib/voice/speech";
 
 type Phase =
   | { kind: "idle" }
@@ -54,6 +64,13 @@ const FLUSH_INTERVAL_MS = 3000;
  *  enough that the lifter notices it during the next rep, short enough
  *  that stale fires don't bleed into clean reps. */
 const HIGHLIGHT_TTL_MS = 1500;
+
+/** localStorage key for the user's mute preference. The value is the
+ *  string "1" if muted, anything else (or missing) means unmuted. We
+ *  persist so the choice carries across page loads — toggling mute
+ *  every session is exactly the kind of friction that gets feature
+ *  abandoned. */
+const MUTE_STORAGE_KEY = "vela.voice.muted";
 
 export function LiftCapture({ lift }: { lift: Lift }) {
   const api = useApi();
@@ -77,6 +94,43 @@ export function LiftCapture({ lift }: { lift: Lift }) {
   const [eventLog, setEventLog] = useState<RiskEvent[]>([]);
   const [repCount, setRepCount] = useState(0);
   const [phaseLabel, setPhaseLabel] = useState<string>("idle");
+  /** Mute defaults to UNmuted so the demo "just works" the first time
+   *  someone clicks Start Set. We hydrate from localStorage in an
+   *  effect rather than an initializer so SSR and the first client
+   *  render agree on the value (avoids the "flash of wrong icon"). */
+  const [muted, setMuted] = useState(false);
+  /** Mirrors `muted` but reads/writes synchronously inside the engine's
+   *  `onEvent` callback, which would otherwise capture a stale value
+   *  from the closure. */
+  const mutedRef = useRef(false);
+
+  useEffect(() => {
+    try {
+      const stored = window.localStorage.getItem(MUTE_STORAGE_KEY);
+      if (stored === "1") {
+        setMuted(true);
+        mutedRef.current = true;
+      }
+    } catch {
+      // localStorage can throw in private mode / blocked storage.
+      // Voice cues stay enabled by default — the explicit toggle still
+      // works in-session, it just won't persist.
+    }
+  }, []);
+
+  const toggleMute = useCallback(() => {
+    setMuted((prev) => {
+      const next = !prev;
+      mutedRef.current = next;
+      try {
+        window.localStorage.setItem(MUTE_STORAGE_KEY, next ? "1" : "0");
+      } catch {
+        // ignore — see hydration effect above
+      }
+      if (next) cancelSpeech();
+      return next;
+    });
+  }, []);
 
   const cleanup = useCallback(() => {
     if (rafIdRef.current !== null && videoRef.current) {
@@ -101,6 +155,9 @@ export function LiftCapture({ lift }: { lift: Lift }) {
         .getContext("2d")
         ?.clearRect(0, 0, canvas.width, canvas.height);
     }
+    // Kill any in-flight utterance so a cue queued at the last rep
+    // doesn't bleed onto the report page after End Set / unmount.
+    cancelSpeech();
   }, []);
 
   useEffect(() => () => cleanup(), [cleanup]);
@@ -109,6 +166,14 @@ export function LiftCapture({ lift }: { lift: Lift }) {
     setEventLog([]);
     setRepCount(0);
     setPhaseLabel("idle");
+
+    // Prime the speech engine right here, in the click handler, while
+    // we still have user-gesture activation. After the first await
+    // (camera permission, model load) the gesture is gone and Safari
+    // would silently swallow the first cue. Also reset the cooldown
+    // so the very first event of this set is guaranteed to speak.
+    warmUpSpeech();
+    resetSpeechCooldown();
 
     setPhase({ kind: "preparing", step: "camera" });
     let stream: MediaStream;
@@ -177,6 +242,16 @@ export function LiftCapture({ lift }: { lift: Lift }) {
         const expiresAt = performance.now() + HIGHLIGHT_TTL_MS;
         for (const idx of landmarksForRule(event.rule_id, event.side)) {
           highlightsRef.current.set(idx, expiresAt);
+        }
+        // Speak only on first fire per (rule, rep, side). Repeated
+        // upgrades of the same event from `info` -> `warn` shouldn't
+        // re-trigger a cue mid-rep — the highlight is already visible
+        // and the lifter only needs the verbal nudge once. The 2.5s
+        // cooldown inside `speak()` is the second line of defense
+        // against cascading rule fires across reps.
+        if (isNew && !mutedRef.current) {
+          const cue = getDefaultCue(event.rule_id, event.side);
+          if (cue) speak(cue);
         }
       },
     });
@@ -299,6 +374,21 @@ export function LiftCapture({ lift }: { lift: Lift }) {
           <Stat label="rep" value={String(repCount)} />
           <Stat label="phase" value={phaseLabel} />
           <Stat label="events" value={String(eventLog.length)} />
+          <button
+            type="button"
+            onClick={toggleMute}
+            aria-pressed={muted}
+            aria-label={muted ? "Unmute voice cues" : "Mute voice cues"}
+            title={muted ? "Voice cues muted" : "Voice cues on"}
+            className={
+              "ml-1 inline-flex size-7 items-center justify-center rounded-md border transition " +
+              (muted
+                ? "border-white/10 bg-zinc-950/60 text-zinc-500 hover:text-zinc-300"
+                : "border-sky-400/30 bg-sky-400/10 text-sky-200 hover:bg-sky-400/20")
+            }
+          >
+            {muted ? <VolumeX className="size-3.5" /> : <Volume2 className="size-3.5" />}
+          </button>
         </div>
       </header>
 
