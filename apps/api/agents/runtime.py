@@ -160,10 +160,15 @@ async def run_until_done(
     content: str,
     memory: str = "Auto",
     max_iterations: int = 6,
+    session_id: str | None = None,
 ) -> str:
     """Send a message, then keep submitting tool outputs until the run ends.
 
     Returns the final assistant message content.
+
+    ``session_id`` is forwarded to ``dispatch`` so tools that take an
+    ``evidence_session_id`` arg can fall back to it when the LLM omits the
+    field. ``None`` is fine for non-session loops (e.g. coach chat).
     """
     response = await client.add_message(
         thread_id=thread_id,
@@ -239,13 +244,34 @@ async def run_until_done(
                         else json.dumps(args)
                     )
                     print(f"  -> dispatch {name}({preview}) id={tool_call_id}")
-                output = await dispatch(
-                    name,
-                    args,
-                    client=client,
-                    user_id=user_id,
-                    assistant_id=assistant_id,
-                )
+                # Wrap the tool call so a single bad invocation (missing
+                # required arg, transient backend hiccup, etc.) never tanks
+                # the whole loop — instead the LLM sees a structured error
+                # in tool_outputs and gets to retry. Without this the
+                # report-generation route surfaces "agent_failed: 'X'" to
+                # the user mid-set, which is brutal during a demo.
+                try:
+                    output = await dispatch(
+                        name,
+                        args,
+                        client=client,
+                        user_id=user_id,
+                        assistant_id=assistant_id,
+                        session_id=session_id,
+                    )
+                except KeyError as e:
+                    log.warning(
+                        "tool %s missing required arg %s; returning error to LLM",
+                        name, e,
+                    )
+                    output = json.dumps(
+                        {"error": f"missing required argument: {e}"}
+                    )
+                except Exception as e:  # noqa: BLE001 — convert to LLM-visible error
+                    log.exception("tool %s failed", name)
+                    output = json.dumps(
+                        {"error": f"{type(e).__name__}: {e}"}
+                    )
                 tool_outputs.append({"tool_call_id": tool_call_id, "output": output})
                 already.add(tool_call_id)
 
