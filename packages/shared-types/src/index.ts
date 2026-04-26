@@ -42,8 +42,6 @@ export type RiskEvent = {
 // ---------------------------------------------------------------------------
 
 export type SessionCreate = {
-  /** Temporary stub until Clerk auth lands. */
-  user_id: string;
   lift: Lift;
 };
 
@@ -159,9 +157,9 @@ export type ThresholdsResponse = {
   thresholds: ThresholdOut[];
 };
 
+/** Body for `PUT /api/user/thresholds/{rule_id}`.
+ *  `user_id` is resolved from the Clerk session token, not the body. */
 export type ThresholdUpsert = {
-  /** Temporary stub until Clerk auth lands. */
-  user_id: string;
   value: number;
   justification?: string | null;
   source_session_id?: string | null;
@@ -189,9 +187,9 @@ export type ProgramsResponse = {
   programs: ProgramOut[];
 };
 
+/** Body for `PUT /api/user/programs/{lift}`.
+ *  `user_id` is resolved from the Clerk session token, not the body. */
 export type ProgramUpsert = {
-  /** Temporary stub until Clerk auth lands. */
-  user_id: string;
   weight_lb: number;
   reps: number;
   sets: number;
@@ -230,10 +228,10 @@ export type Anthropometrics = {
   femur_torso_ratio?: number;
 };
 
-/** Body for `POST /api/onboarding`. Mirrors the §5.3 onboarding form. */
+/** Body for `POST /api/onboarding`. Mirrors the §5.3 onboarding form.
+ *  User id comes from the Clerk session (or `?user_id=` in local dev
+ *  without Clerk). */
 export type OnboardingIn = {
-  /** Temporary stub until Clerk auth lands. */
-  user_id: string;
   email?: string | null;
   anthropometrics?: Anthropometrics;
   /** Free-text injury / regression notes; one Backboard memory per item. */

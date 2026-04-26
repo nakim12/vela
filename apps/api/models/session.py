@@ -9,7 +9,6 @@ Lift = Literal["squat", "bench", "deadlift"]
 
 
 class SessionCreate(BaseModel):
-    user_id: str = Field(..., description="Temporary stub until Clerk auth lands.")
     lift: Lift
 
 

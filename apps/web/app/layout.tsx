@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist_Mono, Rajdhani } from "next/font/google";
+import { ClerkProvider } from "@clerk/nextjs";
 import "./globals.css";
 
 const rajdhani = Rajdhani({
@@ -32,12 +33,24 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
-      <body
-        className={`${rajdhani.variable} ${geistMono.variable} bg-zinc-950 text-zinc-100 font-sans antialiased`}
-      >
-        {children}
-      </body>
-    </html>
+    <ClerkProvider
+      appearance={{
+        variables: {
+          colorPrimary: "#ffffff",
+          colorBackground: "#09090b", // zinc-950, matches body bg
+          colorText: "#fafafa", // zinc-50
+          colorInputBackground: "#18181b", // zinc-900
+          colorInputText: "#fafafa",
+        },
+      }}
+    >
+      <html lang="en" className="dark">
+        <body
+          className={`${rajdhani.variable} ${geistMono.variable} bg-zinc-950 text-zinc-100 font-sans antialiased`}
+        >
+          {children}
+        </body>
+      </html>
+    </ClerkProvider>
   );
 }

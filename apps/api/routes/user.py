@@ -3,6 +3,7 @@ from typing import Literal
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
+from auth import get_effective_user_id
 from db.session import get_db
 from models.user import (
     ProgramOut,
@@ -19,23 +20,27 @@ router = APIRouter(prefix="/user", tags=["user"])
 
 @router.get("/thresholds", response_model=ThresholdsResponse)
 def get_thresholds(
-    user_id: str, db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user_id: str = Depends(get_effective_user_id),
 ) -> ThresholdsResponse:
-    """Return this user's per-rule threshold overrides.
+    """Return the current user's per-rule threshold overrides.
 
     The browser rules engine merges these on top of the population defaults
     (see §3.4 of the plan).
     """
-    rows = list_thresholds(db, user_id)
+    rows = list_thresholds(db, current_user_id)
     return ThresholdsResponse(
-        user_id=user_id,
+        user_id=current_user_id,
         thresholds=[ThresholdOut(**r) for r in rows],
     )
 
 
 @router.put("/thresholds/{rule_id}", response_model=ThresholdOut)
 def put_threshold(
-    rule_id: str, body: ThresholdUpsert, db: Session = Depends(get_db)
+    rule_id: str,
+    body: ThresholdUpsert,
+    db: Session = Depends(get_db),
+    current_user_id: str = Depends(get_effective_user_id),
 ) -> ThresholdOut:
     """Upsert a user-specific threshold override.
 
@@ -43,7 +48,7 @@ def put_threshold(
     """
     row = upsert_threshold(
         db,
-        user_id=body.user_id,
+        user_id=current_user_id,
         rule_id=rule_id,
         value=body.value,
         justification=body.justification,
@@ -54,16 +59,17 @@ def put_threshold(
 
 @router.get("/programs", response_model=ProgramsResponse)
 def get_programs(
-    user_id: str, db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user_id: str = Depends(get_effective_user_id),
 ) -> ProgramsResponse:
-    """Return this user's agent-prescribed next-session targets, one per lift.
+    """Return the current user's agent-prescribed next-session targets.
 
     Used by the pre-session watch-list banner (§5.3) and the lift page to
     pre-fill the weight/reps/sets inputs.
     """
-    rows = list_programs(db, user_id)
+    rows = list_programs(db, current_user_id)
     return ProgramsResponse(
-        user_id=user_id,
+        user_id=current_user_id,
         programs=[ProgramOut(**r) for r in rows],
     )
 
@@ -73,6 +79,7 @@ def put_program(
     lift: Literal["squat", "bench", "deadlift"],
     body: ProgramUpsert,
     db: Session = Depends(get_db),
+    current_user_id: str = Depends(get_effective_user_id),
 ) -> ProgramOut:
     """Upsert the next-session prescription for one lift.
 
@@ -83,7 +90,7 @@ def put_program(
     """
     row = upsert_program(
         db,
-        user_id=body.user_id,
+        user_id=current_user_id,
         lift=lift,
         weight_lb=body.weight_lb,
         reps=body.reps,

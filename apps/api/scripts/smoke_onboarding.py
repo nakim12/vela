@@ -38,7 +38,6 @@ USER_ID = f"smoke-onboard-{int(time.time())}"
 
 
 PAYLOAD: dict[str, Any] = {
-    "user_id": USER_ID,
     "email": f"{USER_ID}@vela.local",
     "anthropometrics": {
         "height_in": 71,
@@ -57,8 +56,15 @@ PAYLOAD: dict[str, Any] = {
 
 async def main() -> None:
     async with httpx.AsyncClient(timeout=120.0) as http:
-        print(f"[1/4] POST /onboarding for user_id={USER_ID}")
-        r = await http.post(f"{BASE}/onboarding", json=PAYLOAD)
+        print(
+            f"[1/4] POST /onboarding?user_id={USER_ID} (dev override; "
+            "Clerk mode ignores the query and uses the JWT sub)"
+        )
+        r = await http.post(
+            f"{BASE}/onboarding",
+            params={"user_id": USER_ID},
+            json=PAYLOAD,
+        )
         r.raise_for_status()
         body = r.json()
         print(f"      assistant_id={body['assistant_id']}")
@@ -69,6 +75,7 @@ async def main() -> None:
             f"expected 4 memories, got {body['memories_written']}"
         )
         assert body["assistant_id"], "assistant_id should not be empty"
+        assert body["user_id"] == USER_ID, f"user_id echo mismatch: {body!r}"
 
         print("[2/4] Probe persistence via /user/trends (200 + empty sessions)")
         r = await http.get(
@@ -83,14 +90,18 @@ async def main() -> None:
         print("[3/4] Create a session for this user via POST /sessions")
         r = await http.post(
             f"{BASE}/sessions",
-            json={"user_id": USER_ID, "lift": "squat"},
+            params={"user_id": USER_ID},
+            json={"lift": "squat"},
         )
         r.raise_for_status()
         session_id = r.json()["session_id"]
         print(f"      session_id={session_id}")
 
         print(f"[4/4] GET /sessions/{session_id}/pre -> banner should reference seeded memories")
-        r = await http.get(f"{BASE}/sessions/{session_id}/pre")
+        r = await http.get(
+            f"{BASE}/sessions/{session_id}/pre",
+            params={"user_id": USER_ID},
+        )
         r.raise_for_status()
         body = r.json()
         banner = body["banner"]

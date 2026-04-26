@@ -80,6 +80,8 @@ Then open `.env` and fill in at least:
 ```ini
 DATABASE_URL=postgresql+psycopg://vela:vela@localhost:5432/vela
 BACKBOARD_API_KEY=...   # if you're touching agent/ws code
+# CLERK_JWT_ISSUER left blank = dev bypass; all requests authenticate
+# as DEMO_USER_ID. See "Authentication" below.
 ```
 
 `db/session.py` auto-loads `.env` on import — no shell exports required. If
@@ -147,23 +149,63 @@ Swagger UI at `/docs` is the source of truth. Quick reference:
 
 | method | path | purpose |
 | --- | --- | --- |
-| GET | `/api/health` | liveness probe |
-| POST | `/api/sessions` | start a workout session |
-| GET | `/api/sessions?user_id=&lift=&limit=` | list a user's recent sessions |
+| GET | `/api/health` | liveness probe (unauthenticated) |
+| POST | `/api/sessions` | start a workout session for the caller |
+| GET | `/api/sessions?lift=&limit=` | list the caller's recent sessions |
 | POST | `/api/sessions/{id}/events` | batch of `RiskEvent`s from the browser |
 | POST | `/api/sessions/{id}/sets` | log a completed set + its per-rep telemetry |
 | GET | `/api/sessions/{id}/sets` | list the session's sets (with nested reps) |
 | POST | `/api/sessions/{id}/end` | mark session ended, returns event count |
 | GET | `/api/sessions/{id}/report` | session + events + sets for the post-set view |
-| GET | `/api/user/thresholds?user_id=` | list per-user rule threshold overrides |
+| GET | `/api/user/thresholds` | list the caller's per-rule threshold overrides |
 | PUT | `/api/user/thresholds/{rule_id}` | upsert an override (called by the agent) |
-| GET | `/api/user/programs?user_id=` | list agent-prescribed next-session targets per lift |
+| GET | `/api/user/programs` | list agent-prescribed next-session targets per lift |
 | PUT | `/api/user/programs/{lift}` | upsert next-session target (called by `recommend_load`) |
 | WS | `/ws/sessions/{id}` | agent → browser voice cue stream (Nathan) |
+
+Every endpoint except `/api/health` resolves the current user via the
+Clerk session token (see "Authentication" below). Session-scoped endpoints
+(`/sessions/{id}/...`) additionally enforce ownership: 404 if the session
+doesn't exist, 403 if it belongs to another user.
 
 The TypeScript mirrors of every request/response shape live in
 `packages/shared-types/src/index.ts` — always update that file in the same PR
 that changes a pydantic model.
+
+---
+
+## Authentication
+
+Auth is handled by a single FastAPI dependency, `auth.get_current_user_id`,
+that every protected route depends on. It:
+
+1. Reads the `Authorization: Bearer <clerk JWT>` header.
+2. Verifies the JWT signature against Clerk's JWKS (fetched from
+   `{CLERK_JWT_ISSUER}/.well-known/jwks.json` and cached per-process).
+3. Auto-provisions the user's row in `users` on first authenticated
+   request, recording the email from the token claims.
+4. Returns the Clerk user id (the `sub` claim) — this is what every route
+   uses as `user_id`.
+
+### Dev bypass
+
+If `CLERK_JWT_ISSUER` is unset, the dep falls back to returning
+`settings.demo_user_id` (default `"demo-user-1"`) for every request. This
+keeps `scripts/smoke_*.py` and raw `curl` against `/docs` working without
+a real sign-in. A one-time `WARNING` log marks the first request that
+hits the bypass.
+
+The bypass is gated on `APP_ENV != "production"`: FastAPI will raise
+`401 auth not configured` if you deploy with `APP_ENV=production` and
+forget to set `CLERK_JWT_ISSUER`.
+
+### Getting a test JWT
+
+- Fastest: sign in via the Next.js app (`apps/web`). The frontend's
+  `lib/api.ts` helper attaches the Clerk token to every fetch.
+- Manual: run `npx clerk-sdk-node whoami` against your Clerk app, or copy
+  the `__session` cookie from devtools and decode it to confirm the `iss`
+  matches `CLERK_JWT_ISSUER`.
 
 ---
 
@@ -210,13 +252,14 @@ Ownership: Matthew (BE-A) owns `main.py`, `routes/`, `models/`, `db/`,
 
 ## Quick smoke test
 
-With the server running:
+With the server running (and `CLERK_JWT_ISSUER` unset, so the dev bypass
+maps every request to `DEMO_USER_ID`):
 
 ```bash
-# 1. create a session
+# 1. create a session — user_id comes from the auth dep, not the body
 SID=$(curl -fsS -X POST http://127.0.0.1:8000/api/sessions \
   -H 'content-type: application/json' \
-  -d '{"user_id":"matt","lift":"squat"}' | python -c "import sys,json; print(json.load(sys.stdin)['session_id'])")
+  -d '{"lift":"squat"}' | python -c "import sys,json; print(json.load(sys.stdin)['session_id'])")
 echo "session=$SID"
 
 # 2. post an event
@@ -230,8 +273,8 @@ curl -fsS -X POST "http://127.0.0.1:8000/api/sessions/$SID/events" \
 curl -fsS -X POST "http://127.0.0.1:8000/api/sessions/$SID/end"
 curl -fsS "http://127.0.0.1:8000/api/sessions/$SID/report" | python -m json.tool
 
-# 4. list a user's sessions
-curl -fsS "http://127.0.0.1:8000/api/sessions?user_id=matt" | python -m json.tool
+# 4. list the current user's sessions
+curl -fsS "http://127.0.0.1:8000/api/sessions" | python -m json.tool
 ```
 
 Inspect Postgres directly:

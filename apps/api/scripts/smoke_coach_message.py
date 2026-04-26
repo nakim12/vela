@@ -74,8 +74,12 @@ async def seed_memories() -> None:
 
 
 async def send(http: httpx.AsyncClient, message: str) -> dict:
+    # user_id is no longer in the body — it's resolved from the Clerk session
+    # token. When CLERK_JWT_ISSUER is unset (local dev), the backend maps all
+    # requests to settings.demo_user_id (default "demo-user-1"), which is what
+    # USER_ID here is set to, so the smoke script stays a one-liner.
     print(f"\n[client] POST {ENDPOINT}\n[client] message={message!r}")
-    r = await http.post(ENDPOINT, json={"user_id": USER_ID, "message": message})
+    r = await http.post(ENDPOINT, json={"message": message})
     r.raise_for_status()
     return r.json()
 
