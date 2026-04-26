@@ -1,6 +1,6 @@
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from db import models  # noqa: F401 — register ORM classes with Base
@@ -28,6 +28,17 @@ app = FastAPI(title="Vela API", version="0.1.0", lifespan=lifespan)
 # as `romus-<hash>-<scope>.vercel.app` and `romus-git-<branch>-<scope>.vercel.app`,
 # all of which match the regex below. To add another origin (e.g. a
 # custom domain) just append it to `allow_origins`.
+#
+# `allow_private_network=True` opts into Chrome's Private Network
+# Access policy: a public-secure origin (https://romus.vercel.app)
+# fetching from a loopback target (http://localhost:8000) requires
+# the server to echo `Access-Control-Allow-Private-Network: true` on
+# the preflight. Without it Chrome blocks every request with
+# "Permission was denied for this request to access the loopback
+# address space". Starlette's CORSMiddleware handles this natively
+# when the flag is set — without the flag it actively rejects PNA
+# preflights with 400 even if downstream middleware tries to add the
+# header. Spec: https://wicg.github.io/private-network-access/
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -38,27 +49,8 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    allow_private_network=True,
 )
-
-
-# Private Network Access opt-in.
-#
-# Chrome (and other Chromium browsers) treat `localhost` / 127.0.0.1
-# as a *private* address space and block fetches from public-secure
-# origins (e.g. `https://romus.vercel.app`) into that space unless
-# the server explicitly opts in. The mechanism: the browser sends a
-# preflight `OPTIONS` request with
-# `Access-Control-Request-Private-Network: true`; the server must
-# echo back `Access-Control-Allow-Private-Network: true`.
-#
-# CORSMiddleware doesn't ship this header, so we add it ourselves on
-# every preflight. Spec: https://wicg.github.io/private-network-access/
-@app.middleware("http")
-async def allow_private_network(request: Request, call_next):
-    response = await call_next(request)
-    if request.method == "OPTIONS":
-        response.headers["Access-Control-Allow-Private-Network"] = "true"
-    return response
 
 app.include_router(health_router, prefix="/api")
 app.include_router(sessions_router, prefix="/api")
