@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { UserButton } from "@clerk/nextjs";
+import { motion } from "framer-motion";
 
 const NAV = [
   { href: "/onboarding", label: "Onboarding" },
@@ -69,11 +70,13 @@ export function AppHeader() {
       >
       <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-6 py-3">
         <div className="flex items-center gap-6">
-          <Link href="/" className="inline-flex items-center gap-2.5 p-2">
-            <span className="grid size-7 place-items-center rounded-md border border-white/30 bg-white/10 text-white">
-              <span className="size-1.5 rounded-full bg-white" />
-            </span>
-            <span className="text-sm font-semibold tracking-tight">Vela</span>
+          <Link href="/" className="inline-flex h-10 items-center p-2">
+            <img
+              src="/romus-logo.svg"
+              alt="Romus"
+              className="h-auto w-[72px] bg-transparent object-contain invert"
+              draggable={false}
+            />
           </Link>
           <nav className="hidden items-center gap-5 text-sm text-zinc-300 md:flex">
             {NAV.map((item) => {
@@ -84,11 +87,35 @@ export function AppHeader() {
                   key={item.href}
                   href={item.href}
                   className={
-                    "transition " +
-                    (active ? "text-white" : "hover:text-zinc-100")
+                    "relative isolate inline-flex h-10 items-center justify-center rounded-md px-3 leading-none transition-colors duration-300 " +
+                    (active
+                      ? "text-white"
+                      : "text-zinc-300 hover:bg-white/[0.04] hover:text-zinc-100")
                   }
                 >
-                  {item.label}
+                  {active && (
+                    <motion.span
+                      layoutId="app-nav-active-pill"
+                      className="absolute inset-0 rounded-md border border-white/20 bg-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_10px_24px_-18px_rgba(255,255,255,0.75)]"
+                      initial={false}
+                      style={{ willChange: "transform" }}
+                      transition={{
+                        type: "spring",
+                        stiffness: 320,
+                        damping: 36,
+                        mass: 0.9,
+                        bounce: 0.18,
+                      }}
+                    />
+                  )}
+                  <span
+                    className={
+                      "relative z-10 " +
+                      (active ? "[text-shadow:0_0_9px_rgba(255,255,255,0.4)]" : "")
+                    }
+                  >
+                    {item.label}
+                  </span>
                 </Link>
               );
             })}

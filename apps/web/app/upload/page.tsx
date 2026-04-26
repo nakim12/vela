@@ -75,7 +75,7 @@ function LiftPicker({
             className={
               "rounded-md px-3 py-1.5 text-xs font-medium capitalize transition " +
               (active
-                ? "bg-sky-400/15 text-sky-100 shadow-inner shadow-sky-400/10"
+                ? "bg-white/15 text-zinc-100 shadow-inner shadow-white/10"
                 : "text-zinc-400 hover:bg-white/5 hover:text-zinc-200")
             }
           >
