@@ -15,17 +15,12 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Romus — Form coaching that knows your body",
+  title: "Vela — Form coaching that knows your body",
   description:
     "Real-time MediaPipe pose tracking, a deterministic biomechanics rules engine, and a Claude + Backboard coach that remembers your mobility, injuries, and lifting history. Built for the Big 3.",
-  metadataBase: new URL("https://romus.local"),
-  icons: {
-    icon: "/logo.png",
-    shortcut: "/logo.png",
-    apple: "/logo.png",
-  },
+  metadataBase: new URL("https://vela.local"),
   openGraph: {
-    title: "Romus — Form coaching that knows your body",
+    title: "Vela — Form coaching that knows your body",
     description:
       "Personalized squat, bench, and deadlift coaching powered by browser CV + a per-lifter knowledge graph.",
     type: "website",

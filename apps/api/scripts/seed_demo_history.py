@@ -181,7 +181,7 @@ def _seed_for(user_id: str) -> tuple[int, int]:
         # already creates these, but if someone runs this against a fresh
         # database we don't want a foreign-key explosion.
         if db.get(User, user_id) is None:
-            db.add(User(id=user_id, email=f"{user_id}@romus.local"))
+            db.add(User(id=user_id, email=f"{user_id}@vela.local"))
             db.flush()
 
         for idx, entry in enumerate(HISTORY[user_id], start=1):

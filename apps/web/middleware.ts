@@ -7,7 +7,7 @@
  *   - `/sign-up/*`        — public.
  *   - everything else     — protected. Redirects to /sign-in if no session.
  *
- * Page map comes from romus_project_plan.md §8. Add new public paths to
+ * Page map comes from vela_project_plan.md §8. Add new public paths to
  * `isPublicRoute` below as they're built (e.g. /demo for the static demo
  * video pre-auth preview).
  */

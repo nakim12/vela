@@ -2,13 +2,13 @@ services:
   postgres:
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: romus
-      POSTGRES_PASSWORD: romus
-      POSTGRES_DB: romus
+      POSTGRES_USER: vela
+      POSTGRES_PASSWORD: vela
+      POSTGRES_DB: vela
     ports:
       - "5432:5432"
     volumes:
-      - romus_pgdata:/var/lib/postgresql/data
+      - vela_pgdata:/var/lib/postgresql/data
 
   redis:
     image: redis:7-alpine
@@ -16,4 +16,4 @@ services:
       - "6379:6379"
 
 volumes:
-  romus_pgdata:
+  vela_pgdata:
