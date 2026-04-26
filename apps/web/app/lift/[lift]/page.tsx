@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { Lift } from "@vela/shared-types";
+import type { Lift } from "@romus/shared-types";
 
 const lifts: Lift[] = ["squat", "bench", "deadlift"];
 

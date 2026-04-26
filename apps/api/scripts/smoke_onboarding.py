@@ -38,7 +38,7 @@ USER_ID = f"smoke-onboard-{int(time.time())}"
 
 
 PAYLOAD: dict[str, Any] = {
-    "email": f"{USER_ID}@vela.local",
+    "email": f"{USER_ID}@romus.local",
     "anthropometrics": {
         "height_in": 71,
         "weight_lb": 185,

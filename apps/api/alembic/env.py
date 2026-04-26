@@ -1,4 +1,4 @@
-"""Alembic migration environment for the Vela API.
+"""Alembic migration environment for the Romus API.
 
 This file is imported by the ``alembic`` CLI *and* by the FastAPI lifespan
 hook (which calls ``command.upgrade`` on startup). It reuses the app's own

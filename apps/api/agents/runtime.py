@@ -47,7 +47,7 @@ async def ensure_assistant_for_user(
         return str(user.backboard_assistant_id)
 
     assistant = await client.create_assistant(
-        name=f"vela-coach-{user_id}",
+        name=f"romus-coach-{user_id}",
         system_prompt=COACH_SYSTEM_PROMPT,
         tools=TOOL_DEFS,
     )

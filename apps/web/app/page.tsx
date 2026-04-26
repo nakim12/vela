@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { Show, SignInButton, UserButton } from "@clerk/nextjs";
 import {
   ArrowRight,
@@ -154,16 +155,17 @@ export default function Home() {
 function SiteNav() {
   return (
     <header className="sticky top-0 z-30 border-b border-white/5 bg-zinc-950/70 backdrop-blur-xl">
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3.5">
-        <Link href="/" className="group inline-flex items-center gap-2.5">
-          <span className="grid size-7 place-items-center rounded-md border border-white/30 bg-white/10 text-white">
-            <span className="size-1.5 rounded-full bg-white" />
-          </span>
-          <span className="text-sm font-semibold tracking-tight">
-            Vela
-            <span className="ml-1.5 align-top text-[10px] font-medium uppercase tracking-widest text-zinc-500">
-              alpha
-            </span>
+      <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-6">
+        <Link href="/" className="group relative inline-flex h-0 w-[140px] overflow-visible">
+          <span className="absolute top-1/2 inline-block h-8 w-[140px] -translate-y-1/2 overflow-hidden">
+            <Image
+              src="/logo.png"
+              alt="Romus logo"
+              width={140}
+              height={44}
+              className="-translate-y-[28%] h-auto w-[140px] max-w-none invert"
+              priority
+            />
           </span>
         </Link>
         <nav className="hidden items-center gap-7 text-sm text-zinc-400 md:flex">
@@ -238,7 +240,7 @@ function Hero() {
             </span>
           </h1>
           <p className="mt-6 max-w-2xl text-pretty text-base leading-relaxed text-zinc-400 sm:text-lg">
-            Real-time lift feedback for squat, bench, and deadlift. Vela flags
+            Real-time lift feedback for squat, bench, and deadlift. Romus flags
             risky mechanics mid-set and gives you personalized cues you can use
             on the very next rep.
           </p>
@@ -723,11 +725,17 @@ function SiteFooter() {
     <footer className="border-t border-white/5 px-6 py-10">
       <div className="mx-auto flex max-w-6xl flex-col items-start justify-between gap-6 sm:flex-row sm:items-center">
         <div className="flex items-center gap-3 text-sm text-zinc-500">
-          <span className="grid size-6 place-items-center rounded-md border border-white/30 bg-white/10">
-            <span className="size-1.5 rounded-full bg-white" />
+          <span className="inline-block h-6 w-[105px] overflow-hidden">
+            <Image
+              src="/logo.png"
+              alt="Romus logo"
+              width={105}
+              height={33}
+              className="-translate-y-[26%] h-auto w-[105px] max-w-none invert"
+            />
           </span>
           <span>
-            Vela · MediaPipe + Claude + Backboard · built for lifters who train
+            Romus · MediaPipe + Claude + Backboard · built for lifters who train
             unsupervised.
           </span>
         </div>

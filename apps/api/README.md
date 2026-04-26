@@ -1,10 +1,10 @@
-# Vela API
+# Romus API
 
 FastAPI service that powers sessions, risk events, user thresholds, agent
 load prescriptions, and the coaching-agent plumbing (WebSockets + Backboard).
 
 This README only covers the backend — for the overall system and team split
-see [`/vela_project_plan.md`](../../vela_project_plan.md).
+see [`/romus_project_plan.md`](../../romus_project_plan.md).
 
 ---
 
@@ -30,7 +30,7 @@ Server at <http://127.0.0.1:8000>. Swagger UI at <http://127.0.0.1:8000/docs>.
 
 - **Python 3.11+** (tested on 3.13)
 - **Docker Desktop** running (for local Postgres; the API will fall back to
-  SQLite at `apps/api/vela.db` if no `DATABASE_URL` is set, but you want
+  SQLite at `apps/api/romus.db` if no `DATABASE_URL` is set, but you want
   Postgres for realistic testing)
 - A Backboard API key if you're running any agent loop (`BACKBOARD_API_KEY`)
 
@@ -54,9 +54,9 @@ Connection details (matches `infra/docker-compose.yml`):
 | --- | --- |
 | host | `localhost` |
 | port | `5432` |
-| user | `vela` |
-| password | `vela` |
-| database | `vela` |
+| user | `romus` |
+| password | `romus` |
+| database | `romus` |
 
 ### 2. Create the virtualenv and install deps
 
@@ -78,7 +78,7 @@ cp .env.example .env
 Then open `.env` and fill in at least:
 
 ```ini
-DATABASE_URL=postgresql+psycopg://vela:vela@localhost:5432/vela
+DATABASE_URL=postgresql+psycopg://romus:romus@localhost:5432/romus
 BACKBOARD_API_KEY=...   # if you're touching agent/ws code
 # CLERK_JWT_ISSUER left blank = dev bypass; all requests authenticate
 # as DEMO_USER_ID. See "Authentication" below.
@@ -86,7 +86,7 @@ BACKBOARD_API_KEY=...   # if you're touching agent/ws code
 
 `db/session.py` auto-loads `.env` on import — no shell exports required. If
 `DATABASE_URL` is unset, the API falls back to a local SQLite file at
-`apps/api/vela.db` so teammates without Docker aren't blocked.
+`apps/api/romus.db` so teammates without Docker aren't blocked.
 
 ### 4. Run the server
 
@@ -280,8 +280,8 @@ curl -fsS "http://127.0.0.1:8000/api/sessions" | python -m json.tool
 Inspect Postgres directly:
 
 ```bash
-docker exec -it infra-postgres-1 psql -U vela -d vela -c "\dt"
-docker exec -it infra-postgres-1 psql -U vela -d vela \
+docker exec -it infra-postgres-1 psql -U romus -d romus -c "\dt"
+docker exec -it infra-postgres-1 psql -U romus -d romus \
   -c "SELECT id, user_id, lift, started_at FROM sessions ORDER BY started_at DESC;"
 ```
 
@@ -313,6 +313,6 @@ partial indexes, JSON column defaults), edit the generated migration by
 hand. Restarting uvicorn is enough to apply — no manual `alembic upgrade`.
 
 **SQLite vs Postgres confusion**
-If you see a `vela.db` file appear in `apps/api/` unexpectedly, your
+If you see a `romus.db` file appear in `apps/api/` unexpectedly, your
 `DATABASE_URL` isn't loading. Check `.env` exists and reread the section on
 environment.

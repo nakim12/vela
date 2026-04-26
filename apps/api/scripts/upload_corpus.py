@@ -12,7 +12,7 @@ Usage::
 
 What this script does:
 
-  1. Look for a "vela-corpus" assistant by id (env var CORPUS_ASSISTANT_ID).
+  1. Look for a "romus-corpus" assistant by id (env var CORPUS_ASSISTANT_ID).
      If not set, create a new corpus assistant and print the id to paste
      into apps/api/.env.
   2. List documents already attached to that assistant.
@@ -37,9 +37,9 @@ from config import get_settings
 REPO_ROOT = Path(__file__).resolve().parents[3]
 CORPUS_DIR = REPO_ROOT / "corpus"
 
-CORPUS_ASSISTANT_NAME = "vela-corpus"
+CORPUS_ASSISTANT_NAME = "romus-corpus"
 CORPUS_ASSISTANT_PROMPT = (
-    "You are a research lookup assistant for the Vela strength-coaching "
+    "You are a research lookup assistant for the Romus strength-coaching "
     "app. Your only job is to surface relevant excerpts from the uploaded "
     "documents (NSCA, Starting Strength, Squat University, peer-reviewed "
     "papers) in response to a query. Quote the source. Do not invent "
