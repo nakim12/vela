@@ -173,6 +173,8 @@ export default function Home() {
 
 function SiteNav() {
   const [isScrolled, setIsScrolled] = useState(false);
+  const [activeSection, setActiveSection] = useState<string>(navLinks[0].href);
+  const [hoveredSection, setHoveredSection] = useState<string | null>(null);
 
   useEffect(() => {
     const onScroll = () => {
@@ -182,6 +184,37 @@ function SiteNav() {
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  useEffect(() => {
+    const sectionIds = navLinks
+      .map((l) => l.href.replace("#", ""))
+      .filter(Boolean);
+    const sections = sectionIds
+      .map((id) => document.getElementById(id))
+      .filter((el): el is HTMLElement => Boolean(el));
+
+    if (sections.length === 0) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort(
+            (a, b) => b.intersectionRatio - a.intersectionRatio,
+          );
+        if (visible.length === 0) return;
+        setActiveSection(`#${visible[0].target.id}`);
+      },
+      {
+        root: null,
+        rootMargin: "-20% 0px -55% 0px",
+        threshold: [0.2, 0.35, 0.5, 0.7],
+      },
+    );
+
+    sections.forEach((section) => observer.observe(section));
+    return () => observer.disconnect();
   }, []);
 
   return (
@@ -214,37 +247,63 @@ function SiteNav() {
             : "0ms, 520ms, 0ms, 0ms, 0ms, 0ms",
         }}
       >
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3.5">
-        <Link href="/" className="group inline-flex items-center gap-2.5 p-2">
-          <span className="grid size-7 place-items-center rounded-md border border-white/30 bg-white/10 text-white">
-            <span className="size-1.5 rounded-full bg-white" />
-          </span>
-          <span className="text-sm font-semibold tracking-tight">
-            Vela
-            <span className="ml-1.5 align-top text-[10px] font-medium uppercase tracking-widest text-zinc-500">
-              alpha
-            </span>
-          </span>
+      <div className="mx-auto grid max-w-6xl grid-cols-[1fr_auto_1fr] items-center px-6 py-3.5">
+        <Link href="/" className="group inline-flex h-10 items-center p-2 justify-self-start">
+          <img
+            src="/romus-logo.svg"
+            alt="Romus"
+            className="h-auto w-[72px] bg-transparent object-contain invert"
+            draggable={false}
+          />
         </Link>
-        <nav className="hidden items-center gap-7 text-sm text-zinc-400 md:flex">
-          {navLinks.map((l) => (
-            <a
-              key={l.href}
-              href={l.href}
-              className="transition hover:text-zinc-100"
-            >
-              {l.label}
-            </a>
-          ))}
+        <nav
+          className="mx-auto hidden items-center gap-7 text-sm text-zinc-400 md:flex"
+          onMouseLeave={() => setHoveredSection(null)}
+        >
+          {/*
+            Hover preview: while hovering a nav item, move the glass pill to that
+            target; on mouse leave, fall back to the currently active section.
+          */}
+          {navLinks.map((l) => {
+            const active = (hoveredSection ?? activeSection) === l.href;
+            return (
+              <a
+                key={l.href}
+                href={l.href}
+                onMouseEnter={() => setHoveredSection(l.href)}
+                className={
+                  "relative isolate inline-flex h-10 items-center justify-center rounded-md px-3 leading-none transition-colors duration-300 " +
+                  (active ? "text-white" : "text-zinc-400")
+                }
+              >
+                {active && (
+                  <motion.span
+                    layoutId="site-nav-active-pill"
+                    className="absolute inset-0 rounded-md border border-white/20 bg-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_10px_24px_-18px_rgba(255,255,255,0.75)]"
+                    initial={false}
+                    style={{ willChange: "transform" }}
+                    transition={{
+                      type: "spring",
+                      stiffness: 320,
+                      damping: 36,
+                      mass: 0.9,
+                      bounce: 0.18,
+                    }}
+                  />
+                )}
+                <span
+                  className={
+                    "relative z-10 " +
+                    (active ? "[text-shadow:0_0_9px_rgba(255,255,255,0.4)]" : "")
+                  }
+                >
+                  {l.label}
+                </span>
+              </a>
+            );
+          })}
         </nav>
-        <div className="flex items-center gap-2">
-          <a
-            href="https://github.com"
-            className="hidden size-10 place-items-center rounded-md border border-white/10 text-zinc-400 transition hover:border-white/20 hover:text-zinc-100 sm:grid"
-            aria-label="GitHub"
-          >
-            <GithubMark className="size-4" />
-          </a>
+        <div className="flex items-center justify-self-end gap-2">
           <Show when="signed-out">
             <SignInButton mode="modal">
               <button className="hidden items-center rounded-md border border-white/15 bg-white/5 p-2 text-sm font-medium text-zinc-100 transition hover:border-white/30 hover:bg-white/10 sm:inline-flex">
@@ -252,13 +311,6 @@ function SiteNav() {
               </button>
             </SignInButton>
           </Show>
-          <Link
-            href="/lift/squat"
-            className="group inline-flex h-10 items-center gap-1.5 rounded-md bg-white px-3 text-sm font-medium text-black transition hover:bg-zinc-200"
-          >
-            Try the demo
-            <ArrowRight className="size-3.5 transition group-hover:translate-x-0.5" />
-          </Link>
           <Show when="signed-in">
             <UserButton
               appearance={{
@@ -310,10 +362,6 @@ function Hero() {
           className="relative z-10 mx-auto flex min-h-screen max-w-5xl items-center px-6 pt-24 pb-28 text-center lg:pt-32 lg:pb-36"
         >
           <div className="mx-auto flex max-w-4xl flex-col items-center">
-          <div className="inline-flex w-fit items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-zinc-300">
-            <span className="size-1.5 rounded-full bg-white" />
-            Built for Backboard × Claude
-          </div>
           <h1 className="mt-6 text-balance text-5xl font-semibold leading-[1.02] tracking-tight sm:text-6xl lg:text-7xl">
             Train harder with <span className="text-white">fewer bad reps</span>
           </h1>
@@ -390,9 +438,9 @@ function FixOneRep() {
           Don&apos;t rebuild your whole program. Fix the exact rep that breaks down.
         </h2>
         <p className="mt-5 text-pretty text-base leading-relaxed text-zinc-400 sm:text-lg">
-          Iris-style workflow, but built for lifting: isolate the moment your
-          mechanics fail, diagnose it in context, and carry the correction into
-          your next set without guesswork.
+          A workflow built for lifting: isolate the moment your mechanics fail,
+          diagnose it in context, and carry the correction into your next set
+          without guesswork.
         </p>
         <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
           <Link

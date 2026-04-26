@@ -77,6 +77,10 @@ export default function RootLayout({
           userButtonPopoverCard:
             "!mt-1 !rounded-2xl !border !border-white/15 !bg-zinc-900/95 !shadow-2xl",
           userButtonPopoverMain: "!bg-transparent",
+          userButtonPopoverMainIdentifier: "!text-zinc-100",
+          userButtonPopoverMainIdentifierText: "!text-zinc-100",
+          userPreviewMainIdentifier: "!text-zinc-100",
+          userPreviewSecondaryIdentifier: "!text-zinc-300",
           userButtonPopoverActionButton:
             "!rounded-lg !text-zinc-200 hover:!bg-white/10 hover:!text-white",
           userButtonPopoverActionButtonText: "!text-zinc-200",
