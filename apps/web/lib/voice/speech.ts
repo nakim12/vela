@@ -24,9 +24,12 @@
  */
 
 /** Minimum gap between two spoken cues, in ms. Long enough that two
- *  consecutive bad reps don't overlap; short enough that "watch your
- *  knees" can land before the lifter starts the next descent. */
-const COOLDOWN_MS = 2500;
+ *  back-to-back rule fires don't step on each other (e.g. KNEE_CAVE on
+ *  rep 3 immediately followed by HEEL_LIFT on rep 4 used to merge into
+ *  a half-finished cue + the next one starting). 4 s gives the average
+ *  lifter time to absorb the first cue and start applying it before
+ *  the second arrives. */
+const COOLDOWN_MS = 4000;
 
 let lastSpokenAt = 0;
 let warmedUp = false;
@@ -63,6 +66,13 @@ export function speak(text: string): boolean {
   const now = performance.now();
   if (now - lastSpokenAt < COOLDOWN_MS) return false;
   lastSpokenAt = now;
+
+  // Chrome auto-pauses speechSynthesis after ~15 s of inactivity (a
+  // long-standing browser bug). Calling `resume()` is a no-op when
+  // the engine is already running and unblocks queued utterances when
+  // it's been auto-paused. Without this, the second voice cue of a
+  // long set silently disappears on Chrome desktop.
+  window.speechSynthesis.resume();
 
   const u = new SpeechSynthesisUtterance(text);
   u.rate = 1.05;

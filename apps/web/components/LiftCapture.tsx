@@ -72,6 +72,16 @@ const HIGHLIGHT_TTL_MS = 1500;
  *  abandoned. */
 const MUTE_STORAGE_KEY = "vela.voice.muted";
 
+/** Minimum gap between two cues for the *same* rule, in ms. The engine's
+ *  session-long dedup is correct for the event log but wrong for voice:
+ *  if the rep counter ever reuses a `rep_index` (e.g. the lifter doesn't
+ *  fully stand up between reps), we'd go silent for the rest of the set.
+ *  This per-rule cooldown lets the cue re-fire on later reps while still
+ *  preventing machine-gun coaching when the same rule fires many frames
+ *  in a row. The global cooldown inside `speak()` is a separate guard
+ *  that keeps two *different* rules from talking over each other. */
+const PER_RULE_CUE_COOLDOWN_MS = 5000;
+
 export function LiftCapture({ lift }: { lift: Lift }) {
   const api = useApi();
   const router = useRouter();
@@ -89,6 +99,9 @@ export function LiftCapture({ lift }: { lift: Lift }) {
    *  to it. Using a ref (not state) so we don't re-render on every
    *  rule fire — the canvas redraws on its own each frame anyway. */
   const highlightsRef = useRef<Map<number, number>>(new Map());
+  /** rule_id → last `performance.now()` we spoke a cue for that rule.
+   *  See `PER_RULE_CUE_COOLDOWN_MS` for the rationale. */
+  const lastCueAtRef = useRef<Map<string, number>>(new Map());
 
   const [phase, setPhase] = useState<Phase>({ kind: "idle" });
   const [eventLog, setEventLog] = useState<RiskEvent[]>([]);
@@ -149,6 +162,7 @@ export function LiftCapture({ lift }: { lift: Lift }) {
     sessionIdRef.current = null;
     frameCounterRef.current = 0;
     highlightsRef.current.clear();
+    lastCueAtRef.current.clear();
     const canvas = canvasRef.current;
     if (canvas) {
       canvas
@@ -174,6 +188,7 @@ export function LiftCapture({ lift }: { lift: Lift }) {
     // so the very first event of this set is guaranteed to speak.
     warmUpSpeech();
     resetSpeechCooldown();
+    lastCueAtRef.current.clear();
 
     setPhase({ kind: "preparing", step: "camera" });
     let stream: MediaStream;
@@ -243,15 +258,25 @@ export function LiftCapture({ lift }: { lift: Lift }) {
         for (const idx of landmarksForRule(event.rule_id, event.side)) {
           highlightsRef.current.set(idx, expiresAt);
         }
-        // Speak only on first fire per (rule, rep, side). Repeated
-        // upgrades of the same event from `info` -> `warn` shouldn't
-        // re-trigger a cue mid-rep — the highlight is already visible
-        // and the lifter only needs the verbal nudge once. The 2.5s
-        // cooldown inside `speak()` is the second line of defense
-        // against cascading rule fires across reps.
-        if (isNew && !mutedRef.current) {
-          const cue = getDefaultCue(event.rule_id, event.side);
-          if (cue) speak(cue);
+        // Voice gating is intentionally independent of `isNew`. The
+        // engine's `isNew` is session-long-deduped on (rule, rep, side),
+        // which is right for the event log but goes silent forever if
+        // the rep counter reuses a `rep_index`. Instead we keep our own
+        // per-rule "last spoken at" timestamp so the cue can re-fire on
+        // a later rep while still avoiding spam mid-rep.
+        if (!mutedRef.current) {
+          const now = performance.now();
+          const lastAt = lastCueAtRef.current.get(event.rule_id) ?? 0;
+          if (now - lastAt >= PER_RULE_CUE_COOLDOWN_MS) {
+            const cue = getDefaultCue(event.rule_id, event.side);
+            // Only stamp the timestamp if we actually queued audio.
+            // `speak()` returns false when the global cross-rule
+            // cooldown swallowed the cue; in that case we want the next
+            // event for this rule to still get a chance.
+            if (cue && speak(cue)) {
+              lastCueAtRef.current.set(event.rule_id, now);
+            }
+          }
         }
       },
     });
