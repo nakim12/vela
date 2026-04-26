@@ -255,6 +255,24 @@ export type PreSessionBanner = {
 };
 
 // ---------------------------------------------------------------------------
+// GET /api/user/pre  (agent-driven, owned by BE-B)
+// ---------------------------------------------------------------------------
+
+/** Session-less twin of `PreSessionBanner.target`. Powers the "Today's plan"
+ *  banner on `/lift/[lift]` *before* a session exists. Skips the LLM
+ *  watch-list lines on purpose — calling the pre-session loop on every page
+ *  load would be slow and wasteful, and the prescription number is the part
+ *  the lifter actually wants to see. The narrative justification lives on
+ *  the source session's report; deep-link to it via `target.source_session_id`. */
+export type UserPreSessionResponse = {
+  lift: Lift;
+  /** Latest prescription written by the post-set agent's `recommend_load`
+   *  call for this `(user, lift)` pair. `null` when the user is new to
+   *  this lift (no session has finished yet). */
+  target: PreSessionTarget | null;
+};
+
+// ---------------------------------------------------------------------------
 // POST /api/onboarding  (owned by BE-B)
 // ---------------------------------------------------------------------------
 
@@ -364,9 +382,9 @@ export type TrendsResponse = {
 // POST /api/coach/message  (agent-driven, owned by BE-B)
 // ---------------------------------------------------------------------------
 
+/** Body for `POST /api/coach/message`. User identity comes from the
+ *  Clerk session token, not the body. */
 export type CoachMessageIn = {
-  /** Temporary stub until Clerk auth lands. */
-  user_id: string;
   message: string;
 };
 

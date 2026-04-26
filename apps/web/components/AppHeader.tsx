@@ -2,30 +2,29 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-
-import { DEMO_USERS, useUserStore } from "@/lib/store/user";
+import { UserButton } from "@clerk/nextjs";
 
 const NAV = [
   { href: "/onboarding", label: "Onboarding" },
   { href: "/sessions", label: "Sessions" },
   { href: "/coach", label: "Coach" },
   { href: "/lift/squat", label: "Live capture" },
+  { href: "/settings", label: "Settings" },
 ] as const;
 
 /**
  * Header used on every "app" page (onboarding, sessions, coach). Shows the
- * route nav plus the active-user picker. The picker writes through Zustand
- * + localStorage, so every API call downstream reads `useUserStore().userId`.
+ * route nav plus a Clerk `<UserButton>` for sign-out / account management.
+ *
+ * Identity for every API call comes from the Clerk session token attached
+ * by the `useApi()` hook in `lib/api-client/`. There's no per-page user
+ * picker anymore — all routes resolve `current_user_id` from the JWT.
  *
  * Intentionally NOT used on `/` — the landing page has its own marketing
- * nav and doesn't need the picker.
+ * nav (with its own `<UserButton>`) and doesn't need this shell.
  */
 export function AppHeader() {
   const pathname = usePathname();
-  const userId = useUserStore((s) => s.userId);
-  const setUserId = useUserStore((s) => s.setUserId);
-
-  const isCustom = !DEMO_USERS.some((u) => u.id === userId);
 
   return (
     <header className="sticky top-0 z-30 border-b border-white/5 bg-zinc-950/80 backdrop-blur-xl">
@@ -57,33 +56,13 @@ export function AppHeader() {
           </nav>
         </div>
 
-        <div className="flex items-center gap-2 text-xs">
-          <span className="text-zinc-500">acting as</span>
-          <select
-            value={isCustom ? "__custom__" : userId}
-            onChange={(e) => {
-              if (e.target.value === "__custom__") {
-                const next = window.prompt(
-                  "Enter a user_id (e.g. an email-like string):",
-                  isCustom ? userId : "",
-                );
-                if (next) setUserId(next);
-                return;
-              }
-              setUserId(e.target.value);
-            }}
-            className="rounded-md border border-white/10 bg-zinc-900 px-2 py-1.5 text-zinc-100 outline-none focus:border-sky-400/40"
-          >
-            {DEMO_USERS.map((u) => (
-              <option key={u.id} value={u.id}>
-                {u.label}
-              </option>
-            ))}
-            <option value="__custom__">
-              {isCustom ? `Custom · ${userId}` : "Custom user_id…"}
-            </option>
-          </select>
-        </div>
+        <UserButton
+          appearance={{
+            elements: {
+              avatarBox: "size-8",
+            },
+          }}
+        />
       </div>
     </header>
   );

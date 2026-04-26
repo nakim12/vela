@@ -1,6 +1,10 @@
 import Link from "next/link";
 import type { Lift } from "@vela/shared-types";
 
+import { AppHeader } from "@/components/AppHeader";
+import { LiftCapture } from "@/components/LiftCapture";
+import { TodayPlanBanner } from "@/components/TodayPlanBanner";
+
 const lifts: Lift[] = ["squat", "bench", "deadlift"];
 
 function isLift(s: string): s is Lift {
@@ -15,22 +19,35 @@ export default async function LiftPage({
   const { lift } = await params;
   if (!isLift(lift)) {
     return (
-      <main className="mx-auto max-w-lg p-8">
-        <p>Unknown lift. Use squat, bench, or deadlift.</p>
-        <Link href="/">Home</Link>
-      </main>
+      <div className="min-h-screen bg-zinc-950 text-zinc-100">
+        <AppHeader />
+        <main className="mx-auto max-w-lg p-8">
+          <p>Unknown lift. Use squat, bench, or deadlift.</p>
+          <Link href="/" className="mt-4 inline-block text-sky-400 underline">
+            Home
+          </Link>
+        </main>
+      </div>
     );
   }
 
   return (
-    <main className="mx-auto max-w-lg p-8">
-      <h1 className="text-2xl font-semibold capitalize">{lift}</h1>
-      <p className="mt-2 text-neutral-600">
-        Live capture — MediaPipe overlay and rules land here (Milestone 0–1).
-      </p>
-      <Link href="/" className="mt-6 inline-block text-blue-600 underline">
-        Home
-      </Link>
-    </main>
+    <div className="min-h-screen bg-zinc-950 text-zinc-100">
+      <AppHeader />
+      <main className="mx-auto max-w-5xl space-y-6 px-6 py-10">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-400/90">
+            Lift
+          </p>
+          <h1 className="mt-1 text-3xl font-semibold capitalize tracking-tight">
+            {lift}
+          </h1>
+        </div>
+
+        <TodayPlanBanner lift={lift} />
+
+        <LiftCapture lift={lift} />
+      </main>
+    </div>
   );
 }

@@ -5,8 +5,7 @@ import ReactMarkdown from "react-markdown";
 import { Loader2, Send } from "lucide-react";
 
 import { AppHeader } from "@/components/AppHeader";
-import { ApiError, postCoachMessage } from "@/lib/api-client";
-import { useUserStore } from "@/lib/store/user";
+import { ApiError, postCoachMessage, useApi } from "@/lib/api-client";
 
 type Turn = {
   role: "user" | "coach";
@@ -23,20 +22,13 @@ const SUGGESTIONS = [
 ] as const;
 
 export default function CoachPage() {
-  const userId = useUserStore((s) => s.userId);
+  const api = useApi();
   const [turns, setTurns] = useState<Turn[]>([]);
   const [draft, setDraft] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const nextId = useRef(1);
-
-  // Reset chat when the user picker switches accounts — new persona,
-  // new context, new conversation.
-  useEffect(() => {
-    setTurns([]);
-    setError(null);
-  }, [userId]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({
@@ -56,7 +48,7 @@ export default function CoachPage() {
     ]);
     setPending(true);
     try {
-      const res = await postCoachMessage({ user_id: userId, message: text });
+      const res = await postCoachMessage(api, { message: text });
       setTurns((t) => [
         ...t,
         { role: "coach", content: res.reply, id: nextId.current++ },

@@ -26,6 +26,7 @@ import {
   getMemoryUpdates,
   getSessionReport,
   postSummary,
+  useApi,
 } from "@/lib/api-client";
 
 export default function SessionDetailPage({
@@ -34,6 +35,7 @@ export default function SessionDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id: sessionId } = use(params);
+  const api = useApi();
   const [report, setReport] = useState<SessionReport | null>(null);
   const [summary, setSummary] = useState<PostSetSummaryResponse | null>(null);
   const [memories, setMemories] = useState<MemoryUpdate[] | null>(null);
@@ -50,21 +52,21 @@ export default function SessionDetailPage({
     setLoadingMemories(true);
     setMemoryError(null);
     try {
-      const r = await getMemoryUpdates(sessionId);
+      const r = await getMemoryUpdates(api, sessionId);
       setMemories(r.memory_updates);
     } catch (err) {
       setMemoryError(toMessage(err));
     } finally {
       setLoadingMemories(false);
     }
-  }, [sessionId]);
+  }, [api, sessionId]);
 
   const generateSummary = useCallback(
     async (force: boolean) => {
       setLoadingSummary(true);
       setSummaryError(null);
       try {
-        const r = await postSummary(sessionId, { force });
+        const r = await postSummary(api, sessionId, { force });
         setSummary(r);
         // The agent likely just wrote new memories — refresh the panel.
         await refreshMemories();
@@ -74,7 +76,7 @@ export default function SessionDetailPage({
         setLoadingSummary(false);
       }
     },
-    [sessionId, refreshMemories],
+    [api, sessionId, refreshMemories],
   );
 
   // Initial load: report + memories in parallel. Summary fires only on
@@ -84,7 +86,7 @@ export default function SessionDetailPage({
     let cancelled = false;
     setLoadingReport(true);
     setReportError(null);
-    getSessionReport(sessionId)
+    getSessionReport(api, sessionId)
       .then((r) => {
         if (!cancelled) setReport(r);
       })
@@ -96,7 +98,7 @@ export default function SessionDetailPage({
     return () => {
       cancelled = true;
     };
-  }, [sessionId, refreshMemories]);
+  }, [api, sessionId, refreshMemories]);
 
   // If the session already has a cached `summary_md`, surface it without
   // making the user click "Generate". Cheap because no agent runs.
@@ -117,7 +119,7 @@ export default function SessionDetailPage({
     const prev = memories ?? [];
     setMemories(prev.filter((m) => m.id !== memoryId));
     try {
-      await deleteMemoryUpdate(sessionId, memoryId);
+      await deleteMemoryUpdate(api, sessionId, memoryId);
     } catch (err) {
       // Roll back on failure.
       setMemories(prev);

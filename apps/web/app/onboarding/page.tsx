@@ -6,15 +6,13 @@ import { Loader2, Plus, X } from "lucide-react";
 
 import { AppHeader } from "@/components/AppHeader";
 import { Button } from "@/components/ui/button";
-import { ApiError, postOnboarding } from "@/lib/api-client";
-import { useUserStore } from "@/lib/store/user";
+import { ApiError, postOnboarding, useApi } from "@/lib/api-client";
 
 type CuePref = "internal" | "external" | "";
 
 export default function OnboardingPage() {
   const router = useRouter();
-  const userId = useUserStore((s) => s.userId);
-  const setUserId = useUserStore((s) => s.setUserId);
+  const api = useApi();
 
   const [email, setEmail] = useState("");
   const [heightIn, setHeightIn] = useState("");
@@ -53,7 +51,7 @@ export default function OnboardingPage() {
     setError(null);
     setResult(null);
     try {
-      const res = await postOnboarding(userId, {
+      const res = await postOnboarding(api, {
         email: email.trim() || null,
         anthropometrics: {
           height_in: heightIn ? Number(heightIn) : undefined,
@@ -95,22 +93,14 @@ export default function OnboardingPage() {
           <p className="mt-3 text-sm leading-relaxed text-zinc-400">
             Each answer becomes one Backboard memory the agent can recall
             during your sets. You can skip anything — partial submissions
-            are valid. Re-running with the same user_id overwrites
-            anthropometrics and appends new injuries / mobility flags.
+            are valid. Re-running overwrites your anthropometrics and
+            appends new injuries / mobility flags.
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-8">
-          <Section title="Identity">
-            <Field label="user_id">
-              <input
-                value={userId}
-                onChange={(e) => setUserId(e.target.value)}
-                className="input"
-                placeholder="email-like or any stable id"
-              />
-            </Field>
-            <Field label="email (optional)">
+          <Section title="Email" subtitle="Optional. Mostly for our records — your identity comes from your sign-in.">
+            <Field label="email">
               <input
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
