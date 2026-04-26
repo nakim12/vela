@@ -1,9 +1,24 @@
  "use client";
 
-import { useEffect, useState } from "react";
+import {
+  type MouseEvent as ReactMouseEvent,
+  type ReactNode,
+  startTransition,
+  useEffect,
+  useState,
+} from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { Show, SignInButton, UserButton } from "@clerk/nextjs";
-import { motion, useScroll, useSpring, useTransform } from "framer-motion";
+import type { CountUpProps } from "react-countup";
+import {
+  motion,
+  useMotionValue,
+  useMotionTemplate,
+  useScroll,
+  useSpring,
+  useTransform,
+} from "framer-motion";
 import {
   ArrowRight,
   ArrowUpRight,
@@ -33,10 +48,14 @@ function GithubMark({ className }: { className?: string }) {
 import NeuralBackground from "@/components/ui/flow-field-background";
 import { RevealPreloader } from "@/components/ui/reveal-preloader";
 
+const CountUp = dynamic<CountUpProps>(() => import("react-countup"), {
+  ssr: false,
+});
+
 const navLinks = [
-  { href: "#fix-one-rep", label: "Fix One Rep" },
   { href: "#workflow", label: "Workflow" },
   { href: "#lifts", label: "The Big 3" },
+  { href: "#feedback", label: "Feedback" },
   { href: "#personalization", label: "Personalization" },
 ] as const;
 
@@ -158,16 +177,36 @@ export default function Home() {
       </div>
       <div className="relative z-20 mt-[100vh] bg-zinc-950">
         <StatsStrip />
-        <FixOneRep />
         <HowItWorks />
         <BigThree />
         <FeedbackChannels />
         <Personalization />
-        <Architecture />
         <FinalCta />
         <SiteFooter />
       </div>
     </div>
+  );
+}
+
+function RevealOnScroll({
+  children,
+  delay = 0,
+  className,
+}: {
+  children: ReactNode;
+  delay?: number;
+  className?: string;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 28 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, amount: 0.25 }}
+      transition={{ duration: 0.52, delay, ease: [0.22, 1, 0.36, 1] }}
+      className={className}
+    >
+      {children}
+    </motion.div>
   );
 }
 
@@ -332,6 +371,8 @@ function Hero() {
   const { scrollY } = useScroll();
   const rawBackgroundY = useTransform(scrollY, [0, 1200], [0, -176]);
   const rawContentY = useTransform(scrollY, [0, 1200], [0, -272]);
+  const rawBackgroundBlur = useTransform(scrollY, [0, 260, 1200], [0, 8, 14]);
+  const rawContentBlur = useTransform(scrollY, [0, 260, 1200], [0, 5, 9]);
   const backgroundY = useSpring(rawBackgroundY, {
     stiffness: 90,
     damping: 24,
@@ -342,11 +383,23 @@ function Hero() {
     damping: 28,
     restDelta: 0.001,
   });
+  const backgroundBlur = useSpring(rawBackgroundBlur, {
+    stiffness: 90,
+    damping: 24,
+    restDelta: 0.001,
+  });
+  const contentBlur = useSpring(rawContentBlur, {
+    stiffness: 110,
+    damping: 28,
+    restDelta: 0.001,
+  });
+  const backgroundFilter = useMotionTemplate`blur(${backgroundBlur}px)`;
+  const contentFilter = useMotionTemplate`blur(${contentBlur}px)`;
 
   return (
     <section className="relative isolate h-screen overflow-hidden">
         <motion.div
-          style={{ y: backgroundY }}
+          style={{ y: backgroundY, filter: backgroundFilter }}
           className="pointer-events-none absolute inset-0 scale-110"
         >
           <NeuralBackground
@@ -358,55 +411,124 @@ function Hero() {
         </motion.div>
 
         <motion.div
-          style={{ y: contentY }}
-          className="relative z-10 mx-auto flex min-h-screen max-w-5xl items-center px-6 pt-24 pb-28 text-center lg:pt-32 lg:pb-36"
+          style={{ y: contentY, filter: contentFilter }}
+          className="relative z-10 mx-auto flex min-h-screen w-full max-w-6xl items-center px-6 pt-24 pb-28 lg:pt-32 lg:pb-36"
         >
-          <div className="mx-auto flex max-w-4xl flex-col items-center">
-          <h1 className="mt-6 text-balance text-5xl font-semibold leading-[1.02] tracking-tight sm:text-6xl lg:text-7xl">
-            Cleaner reps for <span className="text-white">optimal workouts.</span>
-          </h1>
-          <p className="mt-6 max-w-2xl text-pretty text-base leading-relaxed text-zinc-400 sm:text-lg">
-            Romus is a personalized training coach that visualizes your movement
-            in real time, helping you track form and improve technique for
-            lifts.
-          </p>
+          <div className="grid w-full grid-cols-1 gap-y-8 text-center md:h-[78vh] md:grid-cols-4 md:grid-rows-3 md:gap-x-8 md:gap-y-6 md:text-left">
+            <div className="md:col-start-1 md:col-span-2 md:row-start-1 md:self-start">
+              <h1 className="text-7xl font-semibold leading-[0.85] tracking-[-0.04em] text-white sm:text-8xl lg:text-[14rem]">
+                ROMUS
+              </h1>
+            </div>
 
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-            <Link
-              href="/lift/squat"
-              className="group inline-flex items-center gap-2 rounded-lg bg-white px-5 py-2.5 text-sm font-semibold text-black transition hover:bg-zinc-200"
-            >
-              Try the squat demo
-              <ArrowRight className="size-4 transition group-hover:translate-x-0.5" />
-            </Link>
-            <Link
-              href="/upload"
-              className="inline-flex items-center gap-2 rounded-lg border border-white/15 bg-white/5 px-5 py-2.5 text-sm font-semibold text-zinc-100 transition hover:border-white/30 hover:bg-white/10"
-            >
-              Upload a video
-            </Link>
-            <Link
-              href="/onboarding"
-              className="inline-flex items-center gap-1.5 px-2 py-2.5 text-sm font-medium text-zinc-400 transition hover:text-zinc-100"
-            >
-              Set up your lifter profile
-              <ArrowUpRight className="size-3.5" />
-            </Link>
-          </div>
+            <div className="md:col-start-3 md:col-span-2 md:row-start-3 md:self-start">
+              <p className="max-w-xl text-pretty text-base leading-relaxed text-zinc-200 sm:text-lg">
+                A personalized training coach that visualizes your skeletal
+                movement in real time, helping you see your form with precision
+                and improve technique through targeted feedback on joint and
+                limb alignment during lifts.
+              </p>
+            </div>
 
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-3 text-xs text-zinc-500">
-            <span className="inline-flex items-center gap-2">
-              <ShieldCheck className="size-3.5 text-zinc-300" /> Pose runs
-              entirely on-device
-            </span>
-            <span className="inline-flex items-center gap-2">
-              <ShieldCheck className="size-3.5 text-zinc-300" /> Memory is
-              yours, exportable, deletable
-            </span>
-          </div>
+            <div className="md:col-start-1 md:col-span-2 md:row-start-3 md:self-start">
+              <h2 className="text-balance text-3xl font-semibold leading-tight tracking-tight text-zinc-100 sm:text-4xl lg:text-5xl">
+                Cleaner reps for optimal workouts.
+              </h2>
+            </div>
+
+            <div className="md:col-start-4 md:col-span-1 md:row-start-1 md:self-start md:justify-self-end md:pt-4 md:h-[7.85rem] lg:h-[9.75rem]">
+              <div className="grid h-full w-max grid-cols-[auto_auto] grid-rows-2 gap-3">
+                <OriginButtonLink
+                  href="/lift/squat"
+                  className="group col-start-1 row-start-1 row-span-2 inline-flex h-full items-center justify-center gap-2 rounded-lg bg-white px-4 py-2.5 text-base font-semibold text-black transition-colors duration-200 hover:bg-zinc-900 sm:text-lg"
+                >
+                  <span className="text-left leading-tight">
+                    Try squat
+                    <br />
+                    demo
+                  </span>
+                  <ArrowRight className="size-4 transition group-hover:translate-x-0.5" />
+                </OriginButtonLink>
+                <Link
+                  href="/upload"
+                  className="col-start-2 row-start-1 inline-flex h-full items-center justify-start gap-2 rounded-lg border border-white/15 bg-zinc-900/90 px-5 py-2.5 text-left text-base font-semibold text-zinc-100 transition hover:border-white/30 hover:bg-zinc-800/90 sm:text-lg"
+                >
+                  Upload a video
+                  <span
+                    aria-hidden
+                    className="size-2 rounded-full bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.8)] animate-pulse"
+                  />
+                </Link>
+                <Link
+                  href="/onboarding"
+                  className="col-start-2 row-start-2 inline-flex h-full items-center justify-start gap-2 rounded-lg border border-white/15 bg-zinc-900/90 px-5 py-2.5 text-left text-base font-semibold text-zinc-100 transition hover:border-white/30 hover:bg-zinc-800/90 sm:text-lg"
+                >
+                  Set up your profile
+                </Link>
+              </div>
+            </div>
           </div>
         </motion.div>
     </section>
+  );
+}
+
+function OriginButtonLink({
+  href,
+  className,
+  children,
+}: {
+  href: string;
+  className: string;
+  children: ReactNode;
+}) {
+  const [cursorPos, setCursorPos] = useState({ x: 0, y: 0 });
+  const [diameter, setDiameter] = useState(320);
+  const scale = useMotionValue(0);
+  const smoothScale = useSpring(scale, {
+    stiffness: 85,
+    damping: 18,
+    restDelta: 0.001,
+  });
+  const easedScale = useTransform(smoothScale, [0, 1], [0, 1]);
+
+  const updateCursorState = (
+    e: ReactMouseEvent<HTMLAnchorElement>,
+    nextScale: 0 | 1,
+  ) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const maxDimension = Math.hypot(rect.width, rect.height) * 2;
+    startTransition(() => {
+      setCursorPos({ x, y });
+      setDiameter(maxDimension || 320);
+    });
+    scale.set(nextScale);
+  };
+
+  return (
+    <Link
+      href={href}
+      onMouseEnter={(e) => updateCursorState(e, 1)}
+      onMouseLeave={(e) => updateCursorState(e, 0)}
+      className={`relative overflow-hidden ${className}`}
+    >
+      <motion.span
+        aria-hidden
+        className="pointer-events-none absolute rounded-full bg-zinc-900 -translate-x-1/2 -translate-y-1/2"
+        style={{
+          left: cursorPos.x,
+          top: cursorPos.y,
+          width: diameter,
+          height: diameter,
+          scale: easedScale,
+        }}
+      />
+      <span className="relative z-10 inline-flex items-center gap-2 text-inherit transition-colors duration-300 group-hover:text-white">
+        {children}
+      </span>
+    </Link>
   );
 }
 
@@ -414,16 +536,56 @@ function StatsStrip() {
   return (
     <section className="border-y border-white/5 bg-white/[0.02]">
       <div className="mx-auto grid max-w-6xl grid-cols-2 divide-y divide-white/5 px-6 sm:grid-cols-4 sm:divide-x sm:divide-y-0">
-        {stats.map((s) => (
-          <div key={s.label} className="px-4 py-6 first:pl-0 last:pr-0 sm:py-8">
-            <div className="text-2xl font-semibold tracking-tight text-zinc-50 sm:text-3xl">
-              {s.value}
-            </div>
+        {stats.map((s, i) => (
+          <RevealOnScroll
+            key={s.label}
+            delay={i * 0.06}
+            className="px-5 py-7 first:pl-0 last:pr-0 sm:px-6 sm:py-8 sm:first:pl-0 sm:last:pr-0"
+          >
+            <CountUpValue
+              text={s.value}
+              className="text-2xl font-semibold tracking-tight text-zinc-50 sm:text-3xl"
+            />
             <div className="mt-1 text-xs text-zinc-500 sm:text-sm">{s.label}</div>
-          </div>
+          </RevealOnScroll>
         ))}
       </div>
     </section>
+  );
+}
+
+function CountUpValue({
+  text,
+  className,
+}: {
+  text: string;
+  className?: string;
+}) {
+  const match = text.match(/-?\d+(?:\.\d+)?/);
+  if (!match) {
+    return <span className={className}>{text}</span>;
+  }
+
+  const raw = match[0];
+  const value = Number(raw);
+  const index = match.index ?? 0;
+  const prefix = text.slice(0, index);
+  const suffix = text.slice(index + raw.length);
+  const decimals = raw.includes(".") ? raw.split(".")[1].length : 0;
+
+  return (
+    <span className={className}>
+      <CountUp
+        start={0}
+        end={value}
+        decimals={decimals}
+        duration={1.2}
+        prefix={prefix}
+        suffix={suffix}
+        enableScrollSpy
+        scrollSpyOnce
+      />
+    </span>
   );
 }
 
@@ -431,18 +593,25 @@ function FixOneRep() {
   return (
     <section id="fix-one-rep" className="relative px-6 py-24 sm:py-28">
       <div className="mx-auto max-w-4xl text-center">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-300">
+        <RevealOnScroll>
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-300">
           Fix one rep now
-        </p>
-        <h2 className="mt-4 text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
+          </p>
+        </RevealOnScroll>
+        <RevealOnScroll delay={0.04}>
+          <h2 className="mt-4 text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
           Don&apos;t rebuild your whole program. Fix the exact rep that breaks down.
-        </h2>
-        <p className="mt-5 text-pretty text-base leading-relaxed text-zinc-400 sm:text-lg">
+          </h2>
+        </RevealOnScroll>
+        <RevealOnScroll delay={0.08}>
+          <p className="mt-5 text-pretty text-base leading-relaxed text-zinc-400 sm:text-lg">
           A workflow built for lifting: isolate the moment your mechanics fail,
           diagnose it in context, and carry the correction into your next set
           without guesswork.
-        </p>
-        <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+          </p>
+        </RevealOnScroll>
+        <RevealOnScroll delay={0.12}>
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
           <Link
             href="/lift/squat"
             className="group inline-flex items-center gap-2 rounded-lg bg-white px-5 py-2.5 text-sm font-semibold text-black transition hover:bg-zinc-200"
@@ -456,7 +625,8 @@ function FixOneRep() {
           >
             Upload one failed set
           </Link>
-        </div>
+          </div>
+        </RevealOnScroll>
       </div>
     </section>
   );
@@ -466,31 +636,32 @@ function HowItWorks() {
   return (
     <section id="workflow" className="relative px-6 py-24 sm:py-28">
       <div className="mx-auto max-w-6xl">
-        <SectionHeader
-          eyebrow="Workflow"
-          title="Capture. Analyze. Cue. Improve."
-          subtitle="One clear loop for every set: read the rep, flag the fault, deliver the cue, track what changed next session."
-        />
+        <RevealOnScroll>
+          <SectionHeader
+            eyebrow="Workflow"
+            title="Capture. Analyze. Cue. Improve."
+            subtitle="One clear loop for every set: read the rep, flag the fault, deliver the cue, track what changed next session."
+          />
+        </RevealOnScroll>
         <div className="mt-14 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {steps.map(({ n, title, body, icon: Icon }) => (
-            <div
-              key={n}
-              className="group relative overflow-hidden rounded-xl border border-white/10 bg-gradient-to-b from-white/[0.04] to-white/[0.01] p-6 transition hover:border-white/20 hover:from-white/[0.07]"
-            >
-              <div className="flex items-center justify-between">
-                <span className="font-mono text-xs text-zinc-500">{n}</span>
-                <span className="grid size-8 place-items-center rounded-md border border-white/10 bg-white/5 text-white">
-                  <Icon className="size-4" />
-                </span>
+          {steps.map(({ n, title, body, icon: Icon }, i) => (
+            <RevealOnScroll key={n} delay={i * 0.06}>
+              <div className="group relative overflow-hidden rounded-xl border border-white/10 bg-gradient-to-b from-white/[0.04] to-white/[0.01] p-6 transition hover:border-white/20 hover:from-white/[0.07]">
+                <div className="flex items-center justify-between">
+                  <span className="font-mono text-xs text-zinc-500">{n}</span>
+                  <span className="grid size-8 place-items-center rounded-md border border-white/10 bg-white/5 text-white">
+                    <Icon className="size-4" />
+                  </span>
+                </div>
+                <h3 className="mt-5 text-base font-semibold text-zinc-50">
+                  {title}
+                </h3>
+                <p className="mt-2 text-sm leading-relaxed text-zinc-400">
+                  {body}
+                </p>
+                <div className="pointer-events-none absolute inset-x-0 -bottom-px h-px bg-gradient-to-r from-transparent via-white/40 to-transparent opacity-0 transition group-hover:opacity-100" />
               </div>
-              <h3 className="mt-5 text-base font-semibold text-zinc-50">
-                {title}
-              </h3>
-              <p className="mt-2 text-sm leading-relaxed text-zinc-400">
-                {body}
-              </p>
-              <div className="pointer-events-none absolute inset-x-0 -bottom-px h-px bg-gradient-to-r from-transparent via-white/40 to-transparent opacity-0 transition group-hover:opacity-100" />
-            </div>
+            </RevealOnScroll>
           ))}
         </div>
       </div>
@@ -505,32 +676,33 @@ function FeedbackChannels() {
       className="relative border-y border-white/5 bg-white/[0.015] px-6 py-24 sm:py-28"
     >
       <div className="mx-auto max-w-6xl">
-        <SectionHeader
-          eyebrow="Three feedback channels"
-          title="In the moment, after the set, across the season."
-          subtitle="Most form apps pick one channel. We deliver all three because each one fixes a different category of mistake."
-        />
+        <RevealOnScroll>
+          <SectionHeader
+            eyebrow="Three feedback channels"
+            title="In the moment, after the set, across the season."
+            subtitle="Most form apps pick one channel. We deliver all three because each one fixes a different category of mistake."
+          />
+        </RevealOnScroll>
         <div className="mt-14 grid grid-cols-1 gap-4 lg:grid-cols-3">
-          {channels.map(({ title, body, icon: Icon, chip }) => (
-            <div
-              key={title}
-              className="relative flex flex-col rounded-xl border border-white/10 bg-zinc-900/40 p-6 backdrop-blur"
-            >
-              <div className="flex items-center justify-between">
-                <span className="grid size-9 place-items-center rounded-md border border-white/20 bg-white/10 text-white">
-                  <Icon className="size-4" />
-                </span>
-                <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-zinc-400">
-                  {chip}
-                </span>
+          {channels.map(({ title, body, icon: Icon, chip }, i) => (
+            <RevealOnScroll key={title} delay={i * 0.06} className="h-full">
+              <div className="relative flex h-full flex-col rounded-xl border border-white/10 bg-zinc-900/40 p-6 backdrop-blur">
+                <div className="flex items-center justify-between">
+                  <span className="grid size-9 place-items-center rounded-md border border-white/20 bg-white/10 text-white">
+                    <Icon className="size-4" />
+                  </span>
+                  <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-zinc-400">
+                    {chip}
+                  </span>
+                </div>
+                <h3 className="mt-5 text-lg font-semibold text-zinc-50">
+                  {title}
+                </h3>
+                <p className="mt-2 text-sm leading-relaxed text-zinc-400">
+                  {body}
+                </p>
               </div>
-              <h3 className="mt-5 text-lg font-semibold text-zinc-50">
-                {title}
-              </h3>
-              <p className="mt-2 text-sm leading-relaxed text-zinc-400">
-                {body}
-              </p>
-            </div>
+            </RevealOnScroll>
           ))}
         </div>
       </div>
@@ -542,41 +714,49 @@ function Personalization() {
   return (
     <section id="personalization" className="relative px-6 py-24 sm:py-32">
       <div className="mx-auto max-w-6xl">
-        <SectionHeader
-          eyebrow="Personalization is the point"
-          title="Same rep. Different lifter. Different cue."
-          subtitle="Your assistant remembers across sessions. Mobility limits, injury history, anthropometry, even which cue style works for you. Watch the same butt wink that flagged on a fresh account get personalized away on yours."
-        />
+        <RevealOnScroll>
+          <SectionHeader
+            eyebrow="Personalization is the point"
+            title="Same rep. Different lifter. Different cue."
+            subtitle="Your assistant remembers across sessions. Mobility limits, injury history, anthropometry, even which cue style works for you. Watch the same butt wink that flagged on a fresh account get personalized away on yours."
+          />
+        </RevealOnScroll>
 
         <div className="mt-14 grid grid-cols-1 gap-4 lg:grid-cols-2">
-          <CueCard
-            label="Fresh account"
-            sublabel="population defaults · no memory"
-            cues={freshAccountCues}
-            tone="muted"
-          />
-          <CueCard
-            label="Your account"
-            sublabel="grounded in your knowledge graph"
-            cues={knownLifterCues}
-            tone="accent"
-          />
+          <RevealOnScroll>
+            <CueCard
+              label="Fresh account"
+              sublabel="population defaults · no memory"
+              cues={freshAccountCues}
+              tone="muted"
+            />
+          </RevealOnScroll>
+          <RevealOnScroll delay={0.06}>
+            <CueCard
+              label="Your account"
+              sublabel="grounded in your knowledge graph"
+              cues={knownLifterCues}
+              tone="accent"
+            />
+          </RevealOnScroll>
         </div>
 
-        <div className="mt-10 grid grid-cols-1 gap-4 rounded-2xl border border-white/10 bg-zinc-900/40 p-6 sm:grid-cols-3">
-          <KGFact
-            category="Mobility"
-            fact="Ankle dorsiflexion limited to 28° R, 34° L (measured 2026-04-12)."
-          />
-          <KGFact
-            category="Injury"
-            fact="Right SI joint flare 2026-02. Trigger: high-bar squat below parallel under fatigue."
-          />
-          <KGFact
-            category="Cue preference"
-            fact="Responds better to internal cues (&ldquo;brace ribs down&rdquo;) than external."
-          />
-        </div>
+        <RevealOnScroll delay={0.1}>
+          <div className="mt-10 grid grid-cols-1 gap-4 rounded-2xl border border-white/10 bg-zinc-900/40 p-6 sm:grid-cols-3">
+            <KGFact
+              category="Mobility"
+              fact="Ankle dorsiflexion limited to 28° R, 34° L (measured 2026-04-12)."
+            />
+            <KGFact
+              category="Injury"
+              fact="Right SI joint flare 2026-02. Trigger: high-bar squat below parallel under fatigue."
+            />
+            <KGFact
+              category="Cue preference"
+              fact="Responds better to internal cues (&ldquo;brace ribs down&rdquo;) than external."
+            />
+          </div>
+        </RevealOnScroll>
       </div>
     </section>
   );
@@ -668,41 +848,42 @@ function BigThree() {
       className="relative border-t border-white/5 bg-white/[0.015] px-6 py-24 sm:py-28"
     >
       <div className="mx-auto max-w-6xl">
-        <SectionHeader
-          eyebrow="The Big 3"
-          title="Rules tuned for the lifts that matter."
-          subtitle="Each lift gets a dedicated segmenter and rule set. Population defaults out of the box; your assistant overrides them when it has reason."
-        />
+        <RevealOnScroll>
+          <SectionHeader
+            eyebrow="The Big 3"
+            title="Rules tuned for the lifts that matter."
+            subtitle="Each lift gets a dedicated segmenter and rule set. Population defaults out of the box; your assistant overrides them when it has reason."
+          />
+        </RevealOnScroll>
         <div className="mt-14 grid grid-cols-1 gap-4 md:grid-cols-3">
-          {lifts.map((lift) => (
-            <div
-              key={lift.name}
-              className="group relative flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-b from-zinc-900/60 to-zinc-950/60 p-6 transition hover:border-white/30"
-            >
-              <div className="flex items-center justify-between">
-                <h3 className="text-xl font-semibold tracking-tight text-zinc-50">
-                  {lift.name}
-                </h3>
-                <span className="font-mono text-[10px] uppercase tracking-widest text-zinc-500">
-                  {lift.rules.length} rules
-                </span>
+          {lifts.map((lift, i) => (
+            <RevealOnScroll key={lift.name} delay={i * 0.06} className="h-full">
+              <div className="group relative flex h-full flex-col overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-b from-zinc-900/60 to-zinc-950/60 p-6 transition hover:border-white/30">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xl font-semibold tracking-tight text-zinc-50">
+                    {lift.name}
+                  </h3>
+                  <span className="font-mono text-[10px] uppercase tracking-widest text-zinc-500">
+                    {lift.rules.length} rules
+                  </span>
+                </div>
+                <ul className="mt-5 space-y-2 text-sm text-zinc-400">
+                  {lift.rules.map((r) => (
+                    <li key={r} className="flex items-start gap-2">
+                      <span className="mt-1.5 size-1 shrink-0 rounded-full bg-zinc-300" />
+                      {r}
+                    </li>
+                  ))}
+                </ul>
+                <Link
+                  href={`/lift/${lift.name.toLowerCase()}`}
+                  className="mt-auto pt-6 inline-flex w-fit items-center gap-1.5 text-sm font-medium text-zinc-200 transition hover:text-white"
+                >
+                  Try {lift.name.toLowerCase()} live
+                  <ArrowRight className="size-3.5 transition group-hover:translate-x-0.5" />
+                </Link>
               </div>
-              <ul className="mt-5 space-y-2 text-sm text-zinc-400">
-                {lift.rules.map((r) => (
-                  <li key={r} className="flex items-start gap-2">
-                    <span className="mt-1.5 size-1 shrink-0 rounded-full bg-zinc-300" />
-                    {r}
-                  </li>
-                ))}
-              </ul>
-              <Link
-                href={`/lift/${lift.name.toLowerCase()}`}
-                className="mt-6 inline-flex w-fit items-center gap-1.5 text-sm font-medium text-zinc-200 transition hover:text-white"
-              >
-                Try {lift.name.toLowerCase()} live
-                <ArrowRight className="size-3.5 transition group-hover:translate-x-0.5" />
-              </Link>
-            </div>
+            </RevealOnScroll>
           ))}
         </div>
       </div>
@@ -714,35 +895,41 @@ function Architecture() {
   return (
     <section id="architecture" className="relative px-6 py-24 sm:py-32">
       <div className="mx-auto max-w-6xl">
-        <SectionHeader
-          eyebrow="Architecture"
-          title="On-device where speed matters. On the server where memory does."
-          subtitle="If Backboard hiccups, the rules engine and overlay still work. The agent layer is enhancement, not dependency."
-        />
+        <RevealOnScroll>
+          <SectionHeader
+            eyebrow="Architecture"
+            title="On-device where speed matters. On the server where memory does."
+            subtitle="If Backboard hiccups, the rules engine and overlay still work. The agent layer is enhancement, not dependency."
+          />
+        </RevealOnScroll>
         <div className="mt-14 grid grid-cols-1 gap-4 lg:grid-cols-2">
-          <ArchPanel
-            tag="Browser · Next.js"
-            title="Real-time, low-latency"
-            items={[
-              "MediaPipe Pose Landmarker (WASM + WebGL)",
-              "Rep segmenter per lift",
-              "Deterministic rules engine",
-              "Canvas skeleton overlay",
-              "Web Speech cue queue",
-            ]}
-          />
-          <ArchPanel
-            tag="Server · FastAPI + Backboard"
-            title="Memory, reasoning, persistence"
-            items={[
-              "Per-user Backboard assistant",
-              "Claude Sonnet 4.5 via Backboard",
-              "6 tools: query / log / threshold / RAG / summary / load",
-              "Postgres for sets, reps, events",
-              "Object storage for raw landmark Parquet",
-            ]}
-            accent
-          />
+          <RevealOnScroll>
+            <ArchPanel
+              tag="Browser · Next.js"
+              title="Real-time, low-latency"
+              items={[
+                "MediaPipe Pose Landmarker (WASM + WebGL)",
+                "Rep segmenter per lift",
+                "Deterministic rules engine",
+                "Canvas skeleton overlay",
+                "Web Speech cue queue",
+              ]}
+            />
+          </RevealOnScroll>
+          <RevealOnScroll delay={0.06}>
+            <ArchPanel
+              tag="Server · FastAPI + Backboard"
+              title="Memory, reasoning, persistence"
+              items={[
+                "Per-user Backboard assistant",
+                "Claude Sonnet 4.5 via Backboard",
+                "6 tools: query / log / threshold / RAG / summary / load",
+                "Postgres for sets, reps, events",
+                "Object storage for raw landmark Parquet",
+              ]}
+              accent
+            />
+          </RevealOnScroll>
         </div>
       </div>
     </section>
@@ -800,7 +987,7 @@ function ArchPanel({
 function FinalCta() {
   return (
     <section className="relative px-6 py-24 sm:py-32">
-      <div className="relative mx-auto max-w-5xl overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-zinc-900 via-zinc-950 to-zinc-900 p-10 sm:p-16">
+      <div className="relative mx-auto max-w-6xl overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-zinc-900 via-zinc-950 to-zinc-900 p-10 sm:p-16">
         <div
           aria-hidden
           className="absolute inset-0 -z-10 opacity-70"
@@ -812,35 +999,41 @@ function FinalCta() {
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-300">
           Ready when you are
         </p>
-        <h2 className="mt-4 max-w-2xl text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
-          Lift smarter. Get cues that actually fit you.
-        </h2>
-        <p className="mt-4 max-w-2xl text-pretty text-base leading-relaxed text-zinc-400 sm:text-lg">
-          Spin up a live session in your browser, or seed your knowledge graph in
-          90 seconds and let the coach learn the rest from your reps.
-        </p>
-        <div className="mt-8 flex flex-wrap items-center gap-3">
-          <Link
-            href="/lift/squat"
-            className="group inline-flex items-center gap-2 rounded-lg bg-white px-5 py-2.5 text-sm font-semibold text-black transition hover:bg-zinc-200"
-          >
-            Start a squat session
-            <ArrowRight className="size-4 transition group-hover:translate-x-0.5" />
-          </Link>
-          <Link
-            href="/onboarding"
-            className="inline-flex items-center gap-2 rounded-lg border border-white/15 bg-white/5 px-5 py-2.5 text-sm font-semibold text-zinc-100 transition hover:border-white/30 hover:bg-white/10"
-          >
-            Onboarding (90 sec)
-          </Link>
-          <Link
-            href="/coach"
-            className="inline-flex items-center gap-1.5 px-2 py-2.5 text-sm font-medium text-zinc-400 transition hover:text-zinc-100"
-          >
-            Chat with your coach
-            <ArrowUpRight className="size-3.5" />
-          </Link>
-        </div>
+        <RevealOnScroll delay={0.04}>
+          <h2 className="mt-4 max-w-2xl text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
+            Lift smarter. Get cues that actually fit you.
+          </h2>
+        </RevealOnScroll>
+        <RevealOnScroll delay={0.08}>
+          <p className="mt-4 max-w-2xl text-pretty text-base leading-relaxed text-zinc-400 sm:text-lg">
+            Spin up a live session in your browser, or seed your knowledge graph in
+            90 seconds and let the coach learn the rest from your reps.
+          </p>
+        </RevealOnScroll>
+        <RevealOnScroll delay={0.12}>
+          <div className="mt-8 flex flex-wrap items-center gap-3">
+            <Link
+              href="/lift/squat"
+              className="group inline-flex items-center gap-2 rounded-lg bg-white px-5 py-2.5 text-sm font-semibold text-black transition hover:bg-zinc-200"
+            >
+              Start a squat session
+              <ArrowRight className="size-4 transition group-hover:translate-x-0.5" />
+            </Link>
+            <Link
+              href="/onboarding"
+              className="inline-flex items-center gap-2 rounded-lg border border-white/15 bg-white/5 px-5 py-2.5 text-sm font-semibold text-zinc-100 transition hover:border-white/30 hover:bg-white/10"
+            >
+              Onboarding (90 sec)
+            </Link>
+            <Link
+              href="/coach"
+              className="inline-flex items-center gap-1.5 px-2 py-2.5 text-sm font-medium text-zinc-400 transition hover:text-zinc-100"
+            >
+              Chat with your coach
+              <ArrowUpRight className="size-3.5" />
+            </Link>
+          </div>
+        </RevealOnScroll>
       </div>
     </section>
   );
@@ -850,7 +1043,8 @@ function SiteFooter() {
   return (
     <footer className="border-t border-white/5 px-6 py-10">
       <div className="mx-auto flex max-w-6xl flex-col items-start justify-between gap-6 sm:flex-row sm:items-center">
-        <div className="flex items-center gap-3 text-sm text-zinc-500">
+        <RevealOnScroll>
+          <div className="flex items-center gap-3 text-sm text-zinc-500">
           <span className="grid size-6 place-items-center rounded-md border border-white/30 bg-white/10">
             <span className="size-1.5 rounded-full bg-white" />
           </span>
@@ -858,8 +1052,10 @@ function SiteFooter() {
             Vela · MediaPipe + Claude + Backboard · built for lifters who train
             unsupervised.
           </span>
-        </div>
-        <div className="flex items-center gap-5 text-xs text-zinc-500">
+          </div>
+        </RevealOnScroll>
+        <RevealOnScroll delay={0.05}>
+          <div className="flex items-center gap-5 text-xs text-zinc-500">
           <Link href="/sessions" className="hover:text-zinc-200">
             Sessions
           </Link>
@@ -872,7 +1068,8 @@ function SiteFooter() {
           <a href="https://github.com" className="hover:text-zinc-200">
             GitHub
           </a>
-        </div>
+          </div>
+        </RevealOnScroll>
       </div>
     </footer>
   );
