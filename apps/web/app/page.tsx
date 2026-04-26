@@ -1,10 +1,5 @@
 import Link from "next/link";
-import {
-  SignInButton,
-  SignedIn,
-  SignedOut,
-  UserButton,
-} from "@clerk/nextjs";
+import { Show, SignInButton, UserButton } from "@clerk/nextjs";
 import {
   ArrowRight,
   ArrowUpRight,
@@ -192,13 +187,13 @@ function SiteNav() {
           >
             <GithubMark className="size-4" />
           </a>
-          <SignedOut>
+          <Show when="signed-out">
             <SignInButton mode="modal">
               <button className="hidden rounded-md px-3 py-1.5 text-sm font-medium text-zinc-300 transition hover:text-zinc-100 sm:inline-flex">
                 Sign in
               </button>
             </SignInButton>
-          </SignedOut>
+          </Show>
           <Link
             href="/lift/squat"
             className="group inline-flex items-center gap-1.5 rounded-md bg-sky-400 px-3 py-1.5 text-sm font-medium text-zinc-950 shadow-[0_0_16px_rgba(56,189,248,0.2)] transition hover:bg-sky-300"
@@ -206,7 +201,7 @@ function SiteNav() {
             Try the demo
             <ArrowRight className="size-3.5 transition group-hover:translate-x-0.5" />
           </Link>
-          <SignedIn>
+          <Show when="signed-in">
             <UserButton
               appearance={{
                 elements: {
@@ -214,7 +209,7 @@ function SiteNav() {
                 },
               }}
             />
-          </SignedIn>
+          </Show>
         </div>
       </div>
     </header>
