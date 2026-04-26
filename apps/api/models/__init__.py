@@ -2,14 +2,26 @@ from .risk_event import RiskEvent
 from .session import (
     EventsAccepted,
     EventsIn,
+    RepIn,
+    RepOut,
     SessionCreate,
     SessionEndOut,
     SessionListItem,
     SessionListResponse,
     SessionOut,
     SessionReport,
+    SetCreate,
+    SetOut,
+    SetsResponse,
 )
-from .user import ThresholdOut, ThresholdsResponse, ThresholdUpsert
+from .user import (
+    ProgramOut,
+    ProgramsResponse,
+    ProgramUpsert,
+    ThresholdOut,
+    ThresholdsResponse,
+    ThresholdUpsert,
+)
 
 __all__ = [
     "RiskEvent",
@@ -21,7 +33,15 @@ __all__ = [
     "SessionReport",
     "SessionListItem",
     "SessionListResponse",
+    "SetCreate",
+    "SetOut",
+    "SetsResponse",
+    "RepIn",
+    "RepOut",
     "ThresholdOut",
     "ThresholdsResponse",
     "ThresholdUpsert",
+    "ProgramOut",
+    "ProgramsResponse",
+    "ProgramUpsert",
 ]

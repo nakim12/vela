@@ -8,6 +8,7 @@ from backboard import BackboardClient
 
 from agents.runtime import (
     ensure_assistant_for_user,
+    ensure_coach_thread_for_user,
     ensure_thread_for_session,
     run_until_done,
 )
@@ -25,16 +26,38 @@ async def post_set_loop(
     assistant_id = await ensure_assistant_for_user(client, user_id)
     thread_id = await ensure_thread_for_session(client, session_id, assistant_id)
 
+    # The lift comes off any of the events (they all share it within a session).
+    # We pass it explicitly in the prompt so the agent doesn't have to infer the
+    # spelling for the recommend_load tool call.
+    events_list = list(events)
+    lift = events_list[0].lift if events_list else "squat"
+
     payload = {
         "session_id": session_id,
-        "events": [e.model_dump() for e in events],
+        "lift": lift,
+        "events": [e.model_dump() for e in events_list],
     }
     prompt = (
-        "End of set. Telemetry below. Produce 2-3 personalized cues for the "
-        "next set, cite biomechanical reasoning, and call write_session_summary "
-        "with the full markdown report. If you observe a pattern that should "
-        "be remembered, call log_observation. If a default threshold is "
-        "consistently exceeded without injury risk, propose update_threshold.\n\n"
+        "End of set. Telemetry below.\n\n"
+        "REQUIRED workflow:\n"
+        "  1. Call query_user_kg for any rule_id you want to personalize.\n"
+        "  2. Call search_research at least once per distinct rule_id in "
+        "the events (e.g. KNEE_CAVE, FORWARD_DUMP). Use the returned text "
+        "to ground your reasoning and quote the source filename in the "
+        "summary's biomechanics section.\n"
+        "  3. If you observe a pattern that should be remembered, call "
+        "log_observation.\n"
+        "  4. If a default threshold is consistently exceeded without "
+        "injury risk, propose update_threshold.\n"
+        "  5. Call write_session_summary with the full markdown report. "
+        "The report must include 2-3 personalized cues and a 'Sources' "
+        "section listing the corpus filenames you cited.\n"
+        "  6. ALWAYS finish by calling recommend_load with the lift from the "
+        "payload and a next_session_target {weight_lb, reps, sets}. Pick a "
+        "sensible target that reflects what you just observed: hold or back "
+        "off if form broke down, progress conservatively if it didn't. If you "
+        "have no prior weight to anchor on, default to a beginner-safe target "
+        "(squat 135x5x3, bench 95x5x3, deadlift 185x5x3).\n\n"
         f"```json\n{json.dumps(payload, indent=2)}\n```"
     )
     return await run_until_done(
@@ -121,4 +144,32 @@ async def pre_session_loop(
         assistant_id=assistant_id,
         thread_id=thread_id,
         content=prompt,
+    )
+
+
+async def coach_chat_loop(
+    client: BackboardClient,
+    *,
+    user_id: str,
+    message: str,
+) -> str:
+    """Free-form conversational turn against the user's persistent coach thread.
+
+    Powers the ``/coach`` chat page. Uses the same per-user assistant + tools
+    as the in/post/pre loops, so the coach can ``query_user_kg`` /
+    ``search_research`` mid-conversation when the user asks substantive
+    questions (e.g. "how should I approach my next squat session?"). Threads
+    are cached per user in-process via ``ensure_coach_thread_for_user``, so
+    multi-turn chats stay coherent until uvicorn restarts.
+    """
+    assistant_id = await ensure_assistant_for_user(client, user_id)
+    thread_id = await ensure_coach_thread_for_user(
+        client, user_id, assistant_id
+    )
+    return await run_until_done(
+        client,
+        user_id=user_id,
+        assistant_id=assistant_id,
+        thread_id=thread_id,
+        content=message,
     )

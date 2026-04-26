@@ -21,6 +21,7 @@ import asyncio
 from agents.loops import post_set_loop
 from agents.runtime import ensure_assistant_for_user
 from bb import get_client
+from db import stubs as db_stubs
 from models.risk_event import RiskEvent
 
 USER_ID = "demo-user-1"
@@ -79,8 +80,30 @@ async def main() -> None:
         session_id=SESSION_ID,
         events=SAMPLE_EVENTS,
     )
-    print("\n=== Agent response ===\n")
+    print("\n=== Agent closing message ===\n")
     print(summary)
+
+    saved = db_stubs.get_session_summary(SESSION_ID)
+    print("\n=== Saved session summary (from write_session_summary) ===\n")
+    if saved:
+        print(saved)
+    else:
+        print("(no summary was saved -- agent did not call write_session_summary)")
+
+    # Verify recommend_load actually persisted via the read path the frontend
+    # will use (GET /api/user/programs?user_id=...). Hits Matthew's HTTP route
+    # rather than reading the DB directly so we exercise the full surface.
+    print("\n=== Persisted programs (GET /api/user/programs) ===\n")
+    try:
+        import httpx
+
+        url = "http://localhost:8000/api/user/programs"
+        with httpx.Client(timeout=5.0) as http:
+            r = http.get(url, params={"user_id": USER_ID})
+            r.raise_for_status()
+            print(r.json())
+    except Exception as e:
+        print(f"(could not reach API at {url} -- is uvicorn running? error: {e})")
 
 
 if __name__ == "__main__":

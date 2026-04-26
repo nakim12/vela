@@ -14,7 +14,10 @@ from typing import Any
 
 from backboard import BackboardClient
 
+from config import get_settings
 from db import stubs as db_stubs
+
+_corpus_thread_id: str | None = None
 
 TOOL_DEFS: list[dict[str, Any]] = [
     {
@@ -199,8 +202,7 @@ async def dispatch(
         return json.dumps({"ok": True})
 
     if name == "search_research":
-        # TODO: route through Backboard documents once the corpus is uploaded.
-        return json.dumps({"results": [], "note": "corpus not yet uploaded"})
+        return await _search_research(client, query=arguments.get("query", ""))
 
     if name == "write_session_summary":
         db_stubs.write_session_summary(
@@ -210,13 +212,47 @@ async def dispatch(
         return json.dumps({"ok": True})
 
     if name == "recommend_load":
-        # TODO: route to programming table once BE-A lands it.
+        target = arguments["next_session_target"]
+        db_stubs.upsert_program(
+            user_id,
+            arguments["lift"],
+            float(target["weight_lb"]),
+            int(target["reps"]),
+            int(target["sets"]),
+        )
         return json.dumps(
-            {
-                "ok": True,
-                "lift": arguments["lift"],
-                "target": arguments["next_session_target"],
-            }
+            {"ok": True, "lift": arguments["lift"], "target": target}
         )
 
     return json.dumps({"error": f"unknown tool: {name}"})
+
+
+async def _search_research(client: BackboardClient, *, query: str) -> str:
+    """Query the shared corpus assistant for relevant excerpts.
+
+    Falls back to a stub when CORPUS_ASSISTANT_ID is unset (i.e. before
+    `python -m scripts.upload_corpus` has been run for the first time).
+    A single thread is reused across calls in the same process to keep
+    Backboard usage cheap; thread creation only happens once.
+    """
+    global _corpus_thread_id
+
+    settings = get_settings()
+    corpus_id = settings.corpus_assistant_id
+    if not corpus_id:
+        return json.dumps({"results": [], "note": "corpus not yet uploaded"})
+
+    if _corpus_thread_id is None:
+        thread = await client.create_thread(corpus_id)
+        _corpus_thread_id = str(thread.thread_id)
+
+    response = await client.add_message(
+        thread_id=_corpus_thread_id,
+        content=(
+            "Find the most relevant excerpts in the uploaded corpus for "
+            f"this query, and quote the source filename. Query: {query}"
+        ),
+        stream=False,
+    )
+    answer = getattr(response, "content", "") or ""
+    return json.dumps({"results": [{"text": answer}]})

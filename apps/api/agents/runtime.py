@@ -5,6 +5,7 @@ import json
 import logging
 import os
 from typing import Any
+from uuid import UUID
 
 from backboard import BackboardClient
 
@@ -16,13 +17,34 @@ log = logging.getLogger(__name__)
 DEBUG_AGENT = os.environ.get("DEBUG_AGENT") == "1"
 
 
+def _is_real_thread_id(value: str | None) -> bool:
+    """Backboard requires real UUIDs for thread_id. Some session rows are
+    created with placeholder strings (see store.create_session, which writes
+    ``thread_placeholder_<hex>`` so the column can be NOT NULL before the
+    first agent run). Treat those as "no thread yet" so we create a real one
+    on the first agent call and persist it back via set_session_thread_id.
+    """
+    if not value:
+        return False
+    try:
+        UUID(str(value))
+    except (TypeError, ValueError):
+        return False
+    return True
+
+
 async def ensure_assistant_for_user(
     client: BackboardClient, user_id: str
 ) -> str:
-    """Idempotently create a Backboard assistant for the user. Returns its id."""
+    """Idempotently create a Backboard assistant for the user. Returns its id.
+
+    Always returns ``str``: the SDK's freshly-created Assistant exposes
+    ``assistant_id`` as a ``uuid.UUID``, which trips response_model
+    validation downstream. Cached values (read from DB) are already strings.
+    """
     user = db_stubs.get_user(user_id)
     if user.backboard_assistant_id:
-        return user.backboard_assistant_id
+        return str(user.backboard_assistant_id)
 
     assistant = await client.create_assistant(
         name=f"vela-coach-{user_id}",
@@ -30,19 +52,39 @@ async def ensure_assistant_for_user(
         tools=TOOL_DEFS,
     )
     db_stubs.set_user_assistant_id(user_id, assistant.assistant_id)
-    return assistant.assistant_id
+    return str(assistant.assistant_id)
 
 
 async def ensure_thread_for_session(
     client: BackboardClient, session_id: str, assistant_id: str
 ) -> str:
     session = db_stubs.get_session(session_id)
-    if session.bb_thread_id:
+    if _is_real_thread_id(session.bb_thread_id):
         return session.bb_thread_id
 
     thread = await client.create_thread(assistant_id)
     db_stubs.set_session_thread_id(session_id, thread.thread_id)
     return thread.thread_id
+
+
+# Coach-chat threads aren't tied to a workout session, so they don't live in
+# the sessions table. Cache one per user in-process; resets on uvicorn restart
+# (acceptable for MVP — Backboard memories persist across restarts anyway, so
+# a fresh thread on the same assistant still has full personalization).
+_COACH_THREADS: dict[str, str] = {}
+
+
+async def ensure_coach_thread_for_user(
+    client: BackboardClient, user_id: str, assistant_id: str
+) -> str:
+    cached = _COACH_THREADS.get(user_id)
+    if cached:
+        return cached
+
+    thread = await client.create_thread(assistant_id)
+    thread_id = str(thread.thread_id)
+    _COACH_THREADS[user_id] = thread_id
+    return thread_id
 
 
 def _tool_call_to_dict(tc: Any) -> dict[str, Any]:
