@@ -50,6 +50,11 @@ export const metadata: Metadata = {
   description:
     "Real-time MediaPipe pose tracking, a deterministic biomechanics rules engine, and a Claude + Backboard coach that remembers your mobility, injuries, and lifting history. Built for the Big 3.",
   metadataBase: new URL(resolveSiteUrl()),
+  icons: {
+    icon: "/romus-logo.svg",
+    shortcut: "/romus-logo.svg",
+    apple: "/romus-logo.svg",
+  },
   openGraph: {
     title: "Vela — Form coaching that knows your body",
     description:
