@@ -241,24 +241,29 @@ function SiteNav() {
 
     const observer = new IntersectionObserver(
       (entries) => {
+        // While hovering nav items, freeze scroll-driven updates so
+        // the moving pill doesn't fight hover state and "jump."
+        if (hoveredSection) return;
         const visible = entries
           .filter((entry) => entry.isIntersecting)
           .sort(
             (a, b) => b.intersectionRatio - a.intersectionRatio,
           );
         if (visible.length === 0) return;
-        setActiveSection(`#${visible[0].target.id}`);
+        const next = `#${visible[0].target.id}`;
+        setActiveSection((prev) => (prev === next ? prev : next));
       },
       {
         root: null,
-        rootMargin: "-20% 0px -55% 0px",
-        threshold: [0.2, 0.35, 0.5, 0.7],
+        // Keep current section active longer before switching to the next.
+        rootMargin: "-18% 0px -38% 0px",
+        threshold: [0.15, 0.3, 0.45, 0.6],
       },
     );
 
     sections.forEach((section) => observer.observe(section));
     return () => observer.disconnect();
-  }, []);
+  }, [hoveredSection]);
 
   return (
     <header
@@ -834,6 +839,7 @@ function Personalization() {
   const SCRUB_START_OFFSET_SECONDS = 1;
   const sectionRef = useRef<HTMLElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const [isVideoReady, setIsVideoReady] = useState(false);
   const lastAppliedTimeRef = useRef(0);
   const targetTimeRef = useRef(0);
   const rafRef = useRef<number | null>(null);
@@ -844,7 +850,7 @@ function Personalization() {
 
   useMotionValueEvent(scrollYProgress, "change", (latest) => {
     const video = videoRef.current;
-    if (!video) return;
+    if (!video || !isVideoReady || video.readyState < 2) return;
     const duration = video.duration;
     if (!Number.isFinite(duration) || duration <= 0) return;
     const clamped = Math.min(1, Math.max(0, latest));
@@ -857,9 +863,11 @@ function Personalization() {
   });
 
   useEffect(() => {
+    const video = videoRef.current;
+    if (video) video.load();
     const tick = () => {
       const video = videoRef.current;
-      if (video) {
+      if (video && isVideoReady && video.readyState >= 2) {
         const target = targetTimeRef.current;
         const current = lastAppliedTimeRef.current;
         const diff = target - current;
@@ -877,7 +885,7 @@ function Personalization() {
     return () => {
       if (rafRef.current !== null) window.cancelAnimationFrame(rafRef.current);
     };
-  }, []);
+  }, [isVideoReady]);
 
   return (
     <section
@@ -902,10 +910,13 @@ function Personalization() {
             video.currentTime = startOffset;
             lastAppliedTimeRef.current = startOffset;
             targetTimeRef.current = startOffset;
+            setIsVideoReady(true);
           }}
-          className="h-full w-full object-cover opacity-50"
+          onLoadedData={() => setIsVideoReady(true)}
+          onCanPlay={() => setIsVideoReady(true)}
+          className="h-full w-full object-cover opacity-60"
         />
-        <div className="absolute inset-0 bg-black/45" />
+        <div className="absolute inset-0 bg-black/30" />
       </div>
       <div className="relative z-10 mx-auto max-w-6xl">
         <RevealOnScroll>
@@ -1028,6 +1039,7 @@ function BigThree() {
   const SCRUB_START_OFFSET_SECONDS = 1;
   const sectionRef = useRef<HTMLElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const [isVideoReady, setIsVideoReady] = useState(false);
   const lastAppliedTimeRef = useRef(0);
   const targetTimeRef = useRef(0);
   const rafRef = useRef<number | null>(null);
@@ -1038,7 +1050,7 @@ function BigThree() {
 
   useMotionValueEvent(scrollYProgress, "change", (latest) => {
     const video = videoRef.current;
-    if (!video) return;
+    if (!video || !isVideoReady || video.readyState < 2) return;
     const duration = video.duration;
     if (!Number.isFinite(duration) || duration <= 0) return;
     const clamped = Math.min(1, Math.max(0, latest));
@@ -1048,9 +1060,11 @@ function BigThree() {
   });
 
   useEffect(() => {
+    const video = videoRef.current;
+    if (video) video.load();
     const tick = () => {
       const video = videoRef.current;
-      if (video) {
+      if (video && isVideoReady && video.readyState >= 2) {
         const target = targetTimeRef.current;
         const current = lastAppliedTimeRef.current;
         const diff = target - current;
@@ -1068,7 +1082,7 @@ function BigThree() {
     return () => {
       if (rafRef.current !== null) window.cancelAnimationFrame(rafRef.current);
     };
-  }, []);
+  }, [isVideoReady]);
 
   return (
     <section
@@ -1093,10 +1107,13 @@ function BigThree() {
             video.currentTime = startOffset;
             lastAppliedTimeRef.current = startOffset;
             targetTimeRef.current = startOffset;
+            setIsVideoReady(true);
           }}
-          className="h-full w-full object-cover opacity-50"
+          onLoadedData={() => setIsVideoReady(true)}
+          onCanPlay={() => setIsVideoReady(true)}
+          className="h-full w-full object-cover opacity-60"
         />
-        <div className="absolute inset-0 bg-black/45" />
+        <div className="absolute inset-0 bg-black/30" />
       </div>
       <div className="mx-auto max-w-6xl">
         <div className="relative z-10">
