@@ -1,4 +1,4 @@
-# Vela
+# Romus
 
 A browser-based, computer-vision-powered form coach for the Big 3.
 MediaPipe runs in your browser to track joints in real time on live
