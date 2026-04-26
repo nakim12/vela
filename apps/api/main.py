@@ -23,9 +23,18 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(title="Vela API", version="0.1.0", lifespan=lifespan)
 
+# CORS: allow the local Next.js dev server plus the deployed Vercel
+# frontends. Production is `romus.vercel.app`; preview deploys come in
+# as `romus-<hash>-<scope>.vercel.app` and `romus-git-<branch>-<scope>.vercel.app`,
+# all of which match the regex below. To add another origin (e.g. a
+# custom domain) just append it to `allow_origins`.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=[
+        "http://localhost:3000",
+        "https://romus.vercel.app",
+    ],
+    allow_origin_regex=r"https://romus(-[a-z0-9-]+)?\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
