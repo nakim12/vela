@@ -83,7 +83,7 @@ export function AppHeader() {
           />
         </Link>
         <nav
-          className="mx-auto hidden items-center gap-5 text-sm text-zinc-300 md:flex"
+          className="mx-auto hidden items-center gap-5 text-base text-zinc-300 md:flex"
           onMouseLeave={() => setHoveredRoute(null)}
         >
           {NAV.map((item) => {

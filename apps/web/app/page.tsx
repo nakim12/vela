@@ -5,6 +5,7 @@ import {
   type ReactNode,
   startTransition,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import dynamic from "next/dynamic";
@@ -13,13 +14,16 @@ import { Show, SignInButton, UserButton } from "@clerk/nextjs";
 import type { CountUpProps } from "react-countup";
 import {
   motion,
+  useInView,
   useMotionValue,
+  useMotionValueEvent,
   useMotionTemplate,
   useScroll,
   useSpring,
   useTransform,
 } from "framer-motion";
 import {
+  ArrowDown,
   ArrowRight,
   ArrowUpRight,
   Activity,
@@ -296,7 +300,7 @@ function SiteNav() {
           />
         </Link>
         <nav
-          className="mx-auto hidden items-center gap-7 text-sm text-zinc-400 md:flex"
+          className="mx-auto hidden items-center gap-7 text-base text-zinc-400 md:flex"
           onMouseLeave={() => setHoveredSection(null)}
         >
           {/*
@@ -469,6 +473,18 @@ function Hero() {
             </div>
           </div>
         </motion.div>
+        <motion.div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 bottom-7 z-20 flex flex-col items-center gap-1.5 text-zinc-300"
+          style={{ filter: contentFilter }}
+          animate={{ y: [0, -5, 0] }}
+          transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
+        >
+          <span className="text-xs font-medium uppercase tracking-[0.16em] text-zinc-400">
+            Learn more
+          </span>
+          <ArrowDown className="size-4" />
+        </motion.div>
     </section>
   );
 }
@@ -561,9 +577,18 @@ function CountUpValue({
   text: string;
   className?: string;
 }) {
+  const containerRef = useRef<HTMLSpanElement | null>(null);
+  const isInView = useInView(containerRef, {
+    once: true,
+    margin: "-10% 0px -10% 0px",
+  });
   const match = text.match(/-?\d+(?:\.\d+)?/);
   if (!match) {
-    return <span className={className}>{text}</span>;
+    return (
+      <span ref={containerRef} className={className}>
+        {text}
+      </span>
+    );
   }
 
   const raw = match[0];
@@ -574,16 +599,15 @@ function CountUpValue({
   const decimals = raw.includes(".") ? raw.split(".")[1].length : 0;
 
   return (
-    <span className={className}>
+    <span ref={containerRef} className={className}>
       <CountUp
         start={0}
-        end={value}
+        end={isInView ? value : 0}
         decimals={decimals}
         duration={1.2}
         prefix={prefix}
         suffix={suffix}
-        enableScrollSpy
-        scrollSpyOnce
+        redraw
       />
     </span>
   );
@@ -634,36 +658,103 @@ function FixOneRep() {
 
 function HowItWorks() {
   return (
-    <section id="workflow" className="relative px-6 py-24 sm:py-28">
+    <section id="workflow" className="relative px-6 py-44 sm:py-56">
       <div className="mx-auto max-w-6xl">
-        <RevealOnScroll>
-          <SectionHeader
-            eyebrow="Workflow"
-            title="Capture. Analyze. Cue. Improve."
-            subtitle="One clear loop for every set: read the rep, flag the fault, deliver the cue, track what changed next session."
-          />
-        </RevealOnScroll>
-        <div className="mt-14 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {steps.map(({ n, title, body, icon: Icon }, i) => (
-            <RevealOnScroll key={n} delay={i * 0.06}>
-              <div className="group relative overflow-hidden rounded-xl border border-white/10 bg-gradient-to-b from-white/[0.04] to-white/[0.01] p-6 transition hover:border-white/20 hover:from-white/[0.07]">
-                <div className="flex items-center justify-between">
-                  <span className="font-mono text-xs text-zinc-500">{n}</span>
-                  <span className="grid size-8 place-items-center rounded-md border border-white/10 bg-white/5 text-white">
-                    <Icon className="size-4" />
-                  </span>
+        <div className="grid grid-cols-1 gap-10 lg:grid-cols-2 lg:gap-16">
+          <RevealOnScroll>
+            <div className="max-w-3xl text-left">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-300">
+                Workflow
+              </p>
+              <h2 className="mt-4 text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
+                Capture. Analyze. Cue. Improve.
+              </h2>
+              <p className="mt-4 max-w-xl text-pretty text-base leading-relaxed text-zinc-400 sm:text-lg">
+                One clear loop for every set: read the rep, flag the fault, deliver
+                the cue, track what changed next session.
+              </p>
+            </div>
+          </RevealOnScroll>
+          <div className="relative">
+            <div className="space-y-0">
+              {steps.map(({ n, title, body, icon: Icon }, i) => (
+                <div key={n}>
+                  <RevealOnScroll delay={i * 0.08}>
+                    <div className="group relative h-full overflow-hidden rounded-xl border border-white/15 bg-zinc-900 p-6 pl-12 shadow-[0_20px_50px_-30px_rgba(0,0,0,0.9)]">
+                      <motion.span
+                        className={
+                          "absolute left-3 top-8 grid size-6 place-items-center rounded-full border bg-black " +
+                          (i === 0
+                            ? "border-emerald-300/50 text-emerald-200"
+                            : i === 1
+                              ? "border-cyan-300/50 text-cyan-200"
+                              : i === 2
+                                ? "border-violet-300/50 text-violet-200"
+                                : "border-amber-300/50 text-amber-200")
+                        }
+                        animate={{ scale: [1, 1.08, 1] }}
+                        transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut", delay: i * 0.2 }}
+                      />
+                      <div className="flex items-center justify-between">
+                        <span className="font-mono text-xs text-zinc-500">{n}</span>
+                        <motion.span
+                          className={
+                            "grid size-8 place-items-center rounded-md border " +
+                            (i === 0
+                              ? "border-emerald-300/30 bg-emerald-400/10 text-emerald-200"
+                              : i === 1
+                                ? "border-cyan-300/30 bg-cyan-400/10 text-cyan-200"
+                                : i === 2
+                                  ? "border-violet-300/30 bg-violet-400/10 text-violet-200"
+                                  : "border-amber-300/30 bg-amber-400/10 text-amber-200")
+                          }
+                          animate={
+                            i === 0
+                              ? { scaleX: [1, 0.9, 1], scaleY: [1, 1.04, 1] }
+                              : i === 1
+                                ? { x: [0, 1.5, 0, -1.5, 0], y: [0, -1, 0] }
+                                : i === 2
+                                  ? { rotate: [0, 3, 0, -3, 0], scale: [1, 1.05, 1] }
+                                  : { y: [0, -1.8, 0], scale: [1, 1.06, 1] }
+                          }
+                          transition={{
+                            duration: i === 1 ? 3.2 : 2.8,
+                            repeat: Infinity,
+                            ease: "easeInOut",
+                            delay: i * 0.16,
+                          }}
+                        >
+                          <Icon className="size-4" />
+                        </motion.span>
+                      </div>
+                      <h3 className="mt-5 text-base font-semibold text-zinc-50">
+                        {title}
+                      </h3>
+                      <p className="mt-2 text-sm leading-relaxed text-zinc-400">
+                        {body}
+                      </p>
+                      <div className="pointer-events-none absolute inset-x-0 -bottom-px h-px bg-gradient-to-r from-transparent via-white/40 to-transparent opacity-100" />
+                    </div>
+                  </RevealOnScroll>
+                  {i < steps.length - 1 ? (
+                    <div className="relative ml-6 -mt-px h-9 w-px bg-gradient-to-b from-zinc-300/45 to-zinc-300/10">
+                      <motion.span
+                        className="absolute left-1/2 size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-emerald-300/90 shadow-[0_0_10px_rgba(110,231,183,0.9)]"
+                        animate={{ top: ["0%", "100%"], opacity: [0.2, 1, 0.2] }}
+                        transition={{
+                          duration: 1.4,
+                          repeat: Infinity,
+                          ease: "linear",
+                          delay: i * 0.2,
+                        }}
+                      />
+                    </div>
+                  ) : null}
                 </div>
-                <h3 className="mt-5 text-base font-semibold text-zinc-50">
-                  {title}
-                </h3>
-                <p className="mt-2 text-sm leading-relaxed text-zinc-400">
-                  {body}
-                </p>
-                <div className="pointer-events-none absolute inset-x-0 -bottom-px h-px bg-gradient-to-r from-transparent via-white/40 to-transparent opacity-0 transition group-hover:opacity-100" />
-              </div>
-            </RevealOnScroll>
-          ))}
-        </div>
+              ))}
+            </div>
+          </div>
+        </div>        
       </div>
     </section>
   );
@@ -673,24 +764,53 @@ function FeedbackChannels() {
   return (
     <section
       id="feedback"
-      className="relative border-y border-white/5 bg-white/[0.015] px-6 py-24 sm:py-28"
+      className="relative border-y border-white/5 bg-white/[0.015] px-6 py-44 sm:py-56"
     >
       <div className="mx-auto max-w-6xl">
         <RevealOnScroll>
-          <SectionHeader
-            eyebrow="Three feedback channels"
-            title="In the moment, after the set, across the season."
-            subtitle="Most form apps pick one channel. We deliver all three because each one fixes a different category of mistake."
-          />
+          <div className="max-w-3xl text-left">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-300">
+              Three feedback channels
+            </p>
+            <h2 className="mt-4 text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
+              In the moment, after the set, across the season.
+            </h2>
+            <p className="mt-4 max-w-xl text-pretty text-base leading-relaxed text-zinc-400 sm:text-lg">
+              Most form apps pick one channel. We deliver all three because each
+              one fixes a different category of mistake.
+            </p>
+          </div>
         </RevealOnScroll>
-        <div className="mt-14 grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <div className="mt-16 grid grid-cols-1 gap-5 lg:grid-cols-3">
           {channels.map(({ title, body, icon: Icon, chip }, i) => (
             <RevealOnScroll key={title} delay={i * 0.06} className="h-full">
               <div className="relative flex h-full flex-col rounded-xl border border-white/10 bg-zinc-900/40 p-6 backdrop-blur">
                 <div className="flex items-center justify-between">
-                  <span className="grid size-9 place-items-center rounded-md border border-white/20 bg-white/10 text-white">
+                  <motion.span
+                    className={
+                      "grid size-9 place-items-center rounded-md border " +
+                      (i === 0
+                        ? "border-emerald-300/35 bg-emerald-400/12 text-emerald-200"
+                        : i === 1
+                          ? "border-cyan-300/35 bg-cyan-400/12 text-cyan-200"
+                          : "border-violet-300/35 bg-violet-400/12 text-violet-200")
+                    }
+                    animate={
+                      i === 0
+                        ? { scale: [1, 1.06, 1], opacity: [0.85, 1, 0.85] } // live pulse
+                        : i === 1
+                          ? { y: [0, -1.6, 0], scale: [1, 1.04, 1] } // voice cue bounce
+                          : { rotate: [0, 4, 0, -4, 0], scale: [1, 1.03, 1] } // post-set sparkle sway
+                    }
+                    transition={{
+                      duration: i === 2 ? 3 : 2.6,
+                      repeat: Infinity,
+                      ease: "easeInOut",
+                      delay: i * 0.2,
+                    }}
+                  >
                     <Icon className="size-4" />
-                  </span>
+                  </motion.span>
                   <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-zinc-400">
                     {chip}
                   </span>
@@ -711,18 +831,103 @@ function FeedbackChannels() {
 }
 
 function Personalization() {
+  const SCRUB_START_OFFSET_SECONDS = 1;
+  const sectionRef = useRef<HTMLElement | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const lastAppliedTimeRef = useRef(0);
+  const targetTimeRef = useRef(0);
+  const rafRef = useRef<number | null>(null);
+  const { scrollYProgress } = useScroll({
+    target: sectionRef,
+    offset: ["start end", "end start"],
+  });
+
+  useMotionValueEvent(scrollYProgress, "change", (latest) => {
+    const video = videoRef.current;
+    if (!video) return;
+    const duration = video.duration;
+    if (!Number.isFinite(duration) || duration <= 0) return;
+    const clamped = Math.min(1, Math.max(0, latest));
+    const startOffset = Math.min(
+      SCRUB_START_OFFSET_SECONDS,
+      Math.max(0, duration - 0.01),
+    );
+    const playableDuration = Math.max(0.01, duration - startOffset);
+    targetTimeRef.current = startOffset + playableDuration * clamped;
+  });
+
+  useEffect(() => {
+    const tick = () => {
+      const video = videoRef.current;
+      if (video) {
+        const target = targetTimeRef.current;
+        const current = lastAppliedTimeRef.current;
+        const diff = target - current;
+        const maxStep = 1 / 45;
+        const step = Math.max(-maxStep, Math.min(maxStep, diff));
+        const next = current + step;
+        if (Math.abs(next - current) > 1 / 120) {
+          video.currentTime = next;
+          lastAppliedTimeRef.current = next;
+        }
+      }
+      rafRef.current = window.requestAnimationFrame(tick);
+    };
+    rafRef.current = window.requestAnimationFrame(tick);
+    return () => {
+      if (rafRef.current !== null) window.cancelAnimationFrame(rafRef.current);
+    };
+  }, []);
+
   return (
-    <section id="personalization" className="relative px-6 py-24 sm:py-32">
-      <div className="mx-auto max-w-6xl">
+    <section
+      ref={sectionRef}
+      id="personalization"
+      className="relative overflow-hidden px-6 py-44 sm:py-56"
+    >
+      <div className="pointer-events-none absolute inset-0 z-0">
+        <video
+          ref={videoRef}
+          src="/personalization-scroll-scrub.mp4"
+          muted
+          playsInline
+          preload="auto"
+          onLoadedMetadata={() => {
+            const video = videoRef.current;
+            if (!video) return;
+            const startOffset = Math.min(
+              SCRUB_START_OFFSET_SECONDS,
+              Math.max(0, video.duration - 0.01),
+            );
+            video.currentTime = startOffset;
+            lastAppliedTimeRef.current = startOffset;
+            targetTimeRef.current = startOffset;
+          }}
+          className="h-full w-full object-cover opacity-50"
+        />
+        <div className="absolute inset-0 bg-black/45" />
+      </div>
+      <div className="relative z-10 mx-auto max-w-6xl">
         <RevealOnScroll>
-          <SectionHeader
-            eyebrow="Personalization is the point"
-            title="Same rep. Different lifter. Different cue."
-            subtitle="Your assistant remembers across sessions. Mobility limits, injury history, anthropometry, even which cue style works for you. Watch the same butt wink that flagged on a fresh account get personalized away on yours."
-          />
+          <div className="grid grid-cols-1 gap-6 text-left lg:grid-cols-3 lg:gap-8">
+            <div className="lg:col-span-2">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-300">
+                Personalization is the point
+              </p>
+              <h2 className="mt-4 text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
+                Same rep. Different lifter. Different cue.
+              </h2>
+            </div>
+            <p className="max-w-4xl text-pretty text-base leading-relaxed text-zinc-400 sm:text-lg lg:col-span-3">
+              Your assistant remembers across sessions. Mobility limits, injury
+              history, anthropometry, even which cue style works for you. Watch
+              the same butt wink that flagged on a fresh account get personalized
+              away on yours.
+            </p>
+          </div>
         </RevealOnScroll>
 
-        <div className="mt-14 grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <div className="mt-16 grid grid-cols-1 gap-5 lg:grid-cols-2">
           <RevealOnScroll>
             <CueCard
               label="Fresh account"
@@ -741,22 +946,6 @@ function Personalization() {
           </RevealOnScroll>
         </div>
 
-        <RevealOnScroll delay={0.1}>
-          <div className="mt-10 grid grid-cols-1 gap-4 rounded-2xl border border-white/10 bg-zinc-900/40 p-6 sm:grid-cols-3">
-            <KGFact
-              category="Mobility"
-              fact="Ankle dorsiflexion limited to 28° R, 34° L (measured 2026-04-12)."
-            />
-            <KGFact
-              category="Injury"
-              fact="Right SI joint flare 2026-02. Trigger: high-bar squat below parallel under fatigue."
-            />
-            <KGFact
-              category="Cue preference"
-              fact="Responds better to internal cues (&ldquo;brace ribs down&rdquo;) than external."
-            />
-          </div>
-        </RevealOnScroll>
       </div>
     </section>
   );
@@ -779,7 +968,7 @@ function CueCard({
       className={
         "relative overflow-hidden rounded-2xl border p-6 " +
         (accent
-          ? "border-white/30 bg-gradient-to-br from-white/[0.06] to-zinc-500/[0.05]"
+          ? "border-emerald-300/35 bg-emerald-400/[0.06] shadow-[0_20px_52px_-36px_rgba(74,222,128,0.35)]"
           : "border-white/10 bg-white/[0.02]")
       }
     >
@@ -799,7 +988,7 @@ function CueCard({
           className={
             "rounded-full px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider " +
             (accent
-              ? "border border-white/40 bg-white/10 text-white"
+              ? "border border-emerald-200/45 bg-emerald-300/12 text-emerald-100"
               : "border border-white/10 bg-white/5 text-zinc-400")
           }
         >
@@ -810,13 +999,18 @@ function CueCard({
         {cues.map((c, i) => (
           <li
             key={i}
-            className="flex items-start gap-3 rounded-lg border border-white/5 bg-zinc-950/40 p-3 text-sm text-zinc-200"
+            className={
+              "flex items-start gap-3 rounded-lg p-3 text-sm " +
+              (accent
+                ? "border border-emerald-200/20 bg-zinc-950/45 text-zinc-100"
+                : "border border-white/5 bg-zinc-950/40 text-zinc-200")
+            }
           >
             <span
               className={
                 "mt-0.5 grid size-5 shrink-0 place-items-center rounded-md " +
                 (accent
-                  ? "bg-white/20 text-white"
+                  ? "bg-emerald-300/20 text-emerald-100"
                   : "bg-white/10 text-zinc-400")
               }
             >
@@ -830,61 +1024,128 @@ function CueCard({
   );
 }
 
-function KGFact({ category, fact }: { category: string; fact: string }) {
-  return (
-    <div className="rounded-xl border border-white/10 bg-zinc-950/50 p-4">
-      <p className="font-mono text-[10px] uppercase tracking-widest text-zinc-300">
-        {category}
-      </p>
-      <p className="mt-2 text-sm leading-relaxed text-zinc-300">{fact}</p>
-    </div>
-  );
-}
-
 function BigThree() {
+  const SCRUB_START_OFFSET_SECONDS = 1;
+  const sectionRef = useRef<HTMLElement | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const lastAppliedTimeRef = useRef(0);
+  const targetTimeRef = useRef(0);
+  const rafRef = useRef<number | null>(null);
+  const { scrollYProgress } = useScroll({
+    target: sectionRef,
+    offset: ["start end", "end start"],
+  });
+
+  useMotionValueEvent(scrollYProgress, "change", (latest) => {
+    const video = videoRef.current;
+    if (!video) return;
+    const duration = video.duration;
+    if (!Number.isFinite(duration) || duration <= 0) return;
+    const clamped = Math.min(1, Math.max(0, latest));
+    const startOffset = Math.min(SCRUB_START_OFFSET_SECONDS, Math.max(0, duration - 0.01));
+    const playableDuration = Math.max(0.01, duration - startOffset);
+    targetTimeRef.current = startOffset + playableDuration * clamped;
+  });
+
+  useEffect(() => {
+    const tick = () => {
+      const video = videoRef.current;
+      if (video) {
+        const target = targetTimeRef.current;
+        const current = lastAppliedTimeRef.current;
+        const diff = target - current;
+        const maxStep = 1 / 45; // cap to smooth frame-by-frame stepping
+        const step = Math.max(-maxStep, Math.min(maxStep, diff));
+        const next = current + step;
+        if (Math.abs(next - current) > 1 / 120) {
+          video.currentTime = next;
+          lastAppliedTimeRef.current = next;
+        }
+      }
+      rafRef.current = window.requestAnimationFrame(tick);
+    };
+    rafRef.current = window.requestAnimationFrame(tick);
+    return () => {
+      if (rafRef.current !== null) window.cancelAnimationFrame(rafRef.current);
+    };
+  }, []);
+
   return (
     <section
+      ref={sectionRef}
       id="lifts"
-      className="relative border-t border-white/5 bg-white/[0.015] px-6 py-24 sm:py-28"
+      className="relative overflow-hidden border-t border-white/5 bg-white/[0.015] px-6 py-44 sm:py-56"
     >
+      <div className="pointer-events-none absolute inset-0 z-0">
+        <video
+          ref={videoRef}
+          src="/big3-scroll-scrub.mp4"
+          muted
+          playsInline
+          preload="auto"
+          onLoadedMetadata={() => {
+            const video = videoRef.current;
+            if (!video) return;
+            const startOffset = Math.min(
+              SCRUB_START_OFFSET_SECONDS,
+              Math.max(0, video.duration - 0.01),
+            );
+            video.currentTime = startOffset;
+            lastAppliedTimeRef.current = startOffset;
+            targetTimeRef.current = startOffset;
+          }}
+          className="h-full w-full object-cover opacity-50"
+        />
+        <div className="absolute inset-0 bg-black/45" />
+      </div>
       <div className="mx-auto max-w-6xl">
-        <RevealOnScroll>
-          <SectionHeader
-            eyebrow="The Big 3"
-            title="Rules tuned for the lifts that matter."
-            subtitle="Each lift gets a dedicated segmenter and rule set. Population defaults out of the box; your assistant overrides them when it has reason."
-          />
-        </RevealOnScroll>
-        <div className="mt-14 grid grid-cols-1 gap-4 md:grid-cols-3">
-          {lifts.map((lift, i) => (
-            <RevealOnScroll key={lift.name} delay={i * 0.06} className="h-full">
-              <div className="group relative flex h-full flex-col overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-b from-zinc-900/60 to-zinc-950/60 p-6 transition hover:border-white/30">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-xl font-semibold tracking-tight text-zinc-50">
-                    {lift.name}
-                  </h3>
-                  <span className="font-mono text-[10px] uppercase tracking-widest text-zinc-500">
-                    {lift.rules.length} rules
-                  </span>
+        <div className="relative z-10">
+          <RevealOnScroll>
+            <div className="max-w-3xl text-left">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-300">
+                The Big 3
+              </p>
+              <h2 className="mt-4 text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
+                Rules tuned for the lifts that matter.
+              </h2>
+              <p className="mt-4 max-w-xl text-pretty text-base leading-relaxed text-zinc-400 sm:text-lg">
+                Each lift gets a dedicated segmenter and rule set. Population
+                defaults out of the box; your assistant overrides them when it has
+                reason.
+              </p>
+            </div>
+          </RevealOnScroll>
+          <div className="mt-16 grid grid-cols-1 gap-5 md:grid-cols-3">
+            {lifts.map((lift, i) => (
+              <RevealOnScroll key={lift.name} delay={i * 0.06} className="h-full">
+                <div className="group relative flex h-full flex-col overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-b from-zinc-900/75 to-zinc-950/85 p-6 transition hover:border-white/30">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-xl font-semibold tracking-tight text-zinc-50">
+                      {lift.name}
+                    </h3>
+                    <span className="font-mono text-[10px] uppercase tracking-widest text-zinc-500">
+                      {lift.rules.length} rules
+                    </span>
+                  </div>
+                  <ul className="mt-5 space-y-2 text-sm text-zinc-300">
+                    {lift.rules.map((r) => (
+                      <li key={r} className="flex items-start gap-2">
+                        <span className="mt-1.5 size-1 shrink-0 rounded-full bg-zinc-300" />
+                        {r}
+                      </li>
+                    ))}
+                  </ul>
+                  <Link
+                    href={`/lift/${lift.name.toLowerCase()}`}
+                    className="mt-auto inline-flex w-fit items-center gap-1.5 pt-6 text-sm font-medium text-zinc-100 transition hover:text-white"
+                  >
+                    Try {lift.name.toLowerCase()} live
+                    <ArrowRight className="size-3.5 transition group-hover:translate-x-0.5" />
+                  </Link>
                 </div>
-                <ul className="mt-5 space-y-2 text-sm text-zinc-400">
-                  {lift.rules.map((r) => (
-                    <li key={r} className="flex items-start gap-2">
-                      <span className="mt-1.5 size-1 shrink-0 rounded-full bg-zinc-300" />
-                      {r}
-                    </li>
-                  ))}
-                </ul>
-                <Link
-                  href={`/lift/${lift.name.toLowerCase()}`}
-                  className="mt-auto pt-6 inline-flex w-fit items-center gap-1.5 text-sm font-medium text-zinc-200 transition hover:text-white"
-                >
-                  Try {lift.name.toLowerCase()} live
-                  <ArrowRight className="size-3.5 transition group-hover:translate-x-0.5" />
-                </Link>
-              </div>
-            </RevealOnScroll>
-          ))}
+              </RevealOnScroll>
+            ))}
+          </div>
         </div>
       </div>
     </section>
@@ -986,7 +1247,7 @@ function ArchPanel({
 
 function FinalCta() {
   return (
-    <section className="relative px-6 py-24 sm:py-32">
+    <section className="relative px-6 py-36 sm:py-44">
       <div className="relative mx-auto max-w-6xl overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-zinc-900 via-zinc-950 to-zinc-900 p-10 sm:p-16">
         <div
           aria-hidden
@@ -1041,7 +1302,7 @@ function FinalCta() {
 
 function SiteFooter() {
   return (
-    <footer className="border-t border-white/5 px-6 py-10">
+    <footer className="border-t border-white/5 px-6 py-14">
       <div className="mx-auto flex max-w-6xl flex-col items-start justify-between gap-6 sm:flex-row sm:items-center">
         <RevealOnScroll>
           <div className="flex items-center gap-3 text-sm text-zinc-500">
@@ -1093,7 +1354,7 @@ function SectionHeader({
         {title}
       </h2>
       {subtitle ? (
-        <p className="mt-4 text-pretty text-base leading-relaxed text-zinc-400 sm:text-lg">
+        <p className="mx-auto mt-4 max-w-xl text-pretty text-base leading-relaxed text-zinc-400 sm:text-lg">
           {subtitle}
         </p>
       ) : null}
