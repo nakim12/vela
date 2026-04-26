@@ -20,6 +20,24 @@ const eslintConfig = [
       "next-env.d.ts",
     ],
   },
+  {
+    // Allow the standard `_`-prefix convention for intentionally
+    // unused parameters / variables. We use it for placeholder API
+    // surfaces (e.g. `_side` on `getDefaultCue` reserved for future
+    // per-side phrasing) where deleting the param would silently
+    // break callers.
+    rules: {
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        {
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+          caughtErrorsIgnorePattern: "^_",
+          destructuredArrayIgnorePattern: "^_",
+        },
+      ],
+    },
+  },
 ];
 
 export default eslintConfig;
