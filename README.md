@@ -1,6 +1,6 @@
 # romus
 
-**A real-time, browser-based form coach for the Big 3 — pose detection runs in your browser, an agentic Claude coach personalizes the cues, and the next session's prescription writes itself.**
+**A real-time, browser-based form coach for weightlifting — pose detection runs in your browser, an agentic Claude coach personalizes the cues, and the next session's prescription writes itself.**
 
 Built by Francis Le, Matthew Tran, Joseph Chong, & Nathan Kim — April 2026 — Sports & Fitness Track
 
@@ -8,7 +8,7 @@ Built by Francis Le, Matthew Tran, Joseph Chong, & Nathan Kim — April 2026 —
 
 Romus is a closed-loop form coach for the squat, bench, and deadlift. Open the app on your laptop, point your camera at the rack, hit Start Set — MediaPipe runs a 33-point pose graph on every video frame in your browser, a deterministic rules engine flags form breakdowns the moment they happen, the skeleton flashes red on the offending joints, and a Claude-powered coach speaks a 3–8 word cue in your ear before your next rep.
 
-When the set ends, the same coach writes a markdown report grounded in your training history (long-term memory), the bundled corpus of strength research (NSCA, Starting Strength, Squat University, peer-reviewed papers), and the telemetry it just saw. It picks your next session's working weight, persists what it learned to your lifter profile, and the loop closes — every future set inherits the personalization.
+When the set ends, the same coach writes a markdown report grounded in your training history (long-term memory), the bundled corpus of strength research (NSCA, Starting Strength, Squat University, peer-reviewed papers), and the telemetry it just saw. It picks your next session's working weight, persists what it learned to your lifter profile, and the loop closes. Every future set inherits the personalization.
 
 The vision side runs entirely in your browser. The agent runs through a Backboard-hosted assistant with persistent per-user memory.
 
