@@ -10,6 +10,7 @@ const NAV = [
   { href: "/sessions", label: "Sessions" },
   { href: "/coach", label: "Coach" },
   { href: "/lift/squat", label: "Live capture" },
+  { href: "/upload", label: "Upload" },
   { href: "/settings", label: "Settings" },
 ] as const;
 
