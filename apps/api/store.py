@@ -1,4 +1,4 @@
-"""Data access layer for the Romus API.
+"""Data access layer for the Vela API.
 
 Sessions and risk events are persisted via SQLAlchemy (see apps/api/db/).
 Route handlers call these functions and pass in a `DBSession`, so the

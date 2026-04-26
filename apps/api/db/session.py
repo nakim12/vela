@@ -17,7 +17,7 @@ from sqlalchemy.orm import Session, sessionmaker
 _API_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(_API_DIR / ".env")
 
-_DEFAULT_SQLITE_PATH = _API_DIR / "romus.db"
+_DEFAULT_SQLITE_PATH = _API_DIR / "vela.db"
 DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{_DEFAULT_SQLITE_PATH}")
 
 connect_args = (

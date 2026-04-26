@@ -255,7 +255,7 @@ def seed_demo_fixtures() -> None:
                 db.add(
                     UserRow(
                         id=user_id,
-                        email=f"{user_id}@romus.local",
+                        email=f"{user_id}@vela.local",
                         anthropometrics=anthro,
                     )
                 )

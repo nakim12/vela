@@ -1,4 +1,4 @@
-"""ORM models for the Romus API.
+"""ORM models for the Vela API.
 
 Named to match the project plan's Postgres schema (§7.2). The ORM class for
 a workout session is called `WorkoutSession` to avoid clashing with

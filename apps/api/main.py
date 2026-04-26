@@ -21,7 +21,7 @@ async def lifespan(_: FastAPI):
     yield
 
 
-app = FastAPI(title="Romus API", version="0.1.0", lifespan=lifespan)
+app = FastAPI(title="Vela API", version="0.1.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -41,4 +41,4 @@ app.include_router(ws_session_router)
 
 @app.get("/")
 def root() -> dict[str, str]:
-    return {"service": "romus-api", "docs": "/docs"}
+    return {"service": "vela-api", "docs": "/docs"}
