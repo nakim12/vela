@@ -5,12 +5,19 @@ to Vercel. The FastAPI backend stays local on each developer's machine
 for now — see [`SETUP.md`](SETUP.md) for the local API setup.
 
 > **Naming note.** The product is being rebranded from "Vela" to
-> "Romus". The GitHub repo is still `nakim12/vela` and most of the
-> code (page copy, package.json, ClerkProvider theme, etc.) still
-> says "Vela" — the FE team owns that rename. For the **Vercel
-> deploy specifically**, we name the project `romus` so the public
-> URL reflects the new brand from day one. Vercel's project slug is
-> independent from the repo name, so this is a no-cost change.
+> "Romus". The GitHub repo has already been renamed to
+> `nakim12/romus` — old `nakim12/vela` URLs still redirect, but the
+> canonical URL is the new one. Most of the in-app code (page copy,
+> package.json names like `@vela/shared-types`, ClerkProvider theme,
+> etc.) still says "Vela" — the FE team owns that rename. The Vercel
+> deploy below uses `romus` everywhere so the public URL reflects
+> the new brand from day one.
+>
+> If your local clone still points at the old remote, update it:
+>
+> ```bash
+> git remote set-url origin https://github.com/nakim12/romus.git
+> ```
 
 > **Read this first.** A frontend-only deploy works, but every visitor
 > still needs the API running on their own machine on
@@ -67,11 +74,14 @@ branch directly for a preview.
 ### 2. Import the project on Vercel
 
 1. Sign in at <https://vercel.com> with the same GitHub account that
-   owns `nakim12/vela`.
+   owns `nakim12/romus`.
 2. **Add New… → Project**.
-3. Find the `vela` repo in the list and click **Import**.
+3. Find the `romus` repo in the list and click **Import**. (If you
+   only see `vela`, GitHub's repo rename hasn't propagated to Vercel
+   yet — refresh the page or reinstall the Vercel GitHub App with
+   access to the renamed repo.)
 4. If Vercel prompts you to install the Vercel GitHub App, accept it
-   and grant access to the `vela` repo.
+   and grant access to the `romus` repo.
 
 ### 3. Configure build settings
 
@@ -82,7 +92,7 @@ the monorepo).
 
 | Field | Value |
 |---|---|
-| **Project Name** | `romus` ← **type this** (overrides the default `vela` from the repo name; URL becomes `https://romus.vercel.app`) |
+| **Project Name** | `romus` (auto-filled from the repo name; URL becomes `https://romus.vercel.app`) |
 | **Framework Preset** | `Next.js` (auto-detected) |
 | **Root Directory** | `apps/web` ← **set this** |
 | **Build Command** | leave blank (uses `next build`) |
@@ -95,7 +105,10 @@ the monorepo).
 > `romus-app`, `getromus`, or `romus-<your-handle>` — your URL
 > becomes `<that>.vercel.app`. You can rename later in
 > **Project → Settings → General → Project Name**, but the URL
-> changes when you do, so it's cheaper to get it right now.
+> changes when you do, so it's cheaper to get it right now. Update
+> the fallback consistently in the Clerk allowlist (step 6), the
+> CORS regex (in `apps/api/main.py` when you eventually deploy the
+> backend), and any preview-URL screenshots in your demo.
 
 > **Why Root Directory `apps/web` instead of the repo root?** Vercel
 > needs to know which Next.js app to build. With workspaces, it still
