@@ -36,7 +36,6 @@
 
 import type { RiskEvent } from "@vela/shared-types";
 
-import type { PoseFrame } from "@/lib/pose/detector";
 import { LM } from "@/lib/pose/detector";
 import type { Rule } from "./squat";
 

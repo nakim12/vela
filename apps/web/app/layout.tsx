@@ -14,11 +14,42 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+/**
+ * Resolve a canonical site URL for `metadata.metadataBase`.
+ *
+ * Order of preference:
+ *   1. `NEXT_PUBLIC_SITE_URL` — explicit override, useful when a custom
+ *      domain is wired up in front of Vercel.
+ *   2. `VERCEL_PROJECT_PRODUCTION_URL` — set automatically by Vercel for
+ *      production deployments and points at the canonical *.vercel.app
+ *      alias rather than the per-deploy hash.
+ *   3. `VERCEL_URL` — set automatically on every Vercel deploy, including
+ *      previews. Falls back to the per-deploy hash so OG images on PR
+ *      previews still resolve to that preview's domain.
+ *   4. `http://localhost:3000` — local dev fallback. Never reached on
+ *      Vercel.
+ *
+ * Server-only — `metadataBase` is consumed during the RSC pass, so plain
+ * `process.env.*` reads are fine and don't need the `NEXT_PUBLIC_` prefix.
+ */
+function resolveSiteUrl(): string {
+  if (process.env.NEXT_PUBLIC_SITE_URL) {
+    return process.env.NEXT_PUBLIC_SITE_URL;
+  }
+  if (process.env.VERCEL_PROJECT_PRODUCTION_URL) {
+    return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
+  }
+  if (process.env.VERCEL_URL) {
+    return `https://${process.env.VERCEL_URL}`;
+  }
+  return "http://localhost:3000";
+}
+
 export const metadata: Metadata = {
   title: "Vela — Form coaching that knows your body",
   description:
     "Real-time MediaPipe pose tracking, a deterministic biomechanics rules engine, and a Claude + Backboard coach that remembers your mobility, injuries, and lifting history. Built for the Big 3.",
-  metadataBase: new URL("https://vela.local"),
+  metadataBase: new URL(resolveSiteUrl()),
   openGraph: {
     title: "Vela — Form coaching that knows your body",
     description:

@@ -14,6 +14,7 @@ to running app, no deploy required.
 ## Documentation
 
 - [`SETUP.md`](SETUP.md) — local setup for teammates testing the app
+- [`DEPLOY.md`](DEPLOY.md) — deploying the frontend to Vercel
 - [`apps/api/README.md`](apps/api/README.md) — backend reference
   (FastAPI, Alembic, auth, smoke tests)
 - [`vela_project_plan.md`](vela_project_plan.md) — overall product
