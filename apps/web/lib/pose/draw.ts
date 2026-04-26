@@ -23,28 +23,53 @@ import type { RiskSide } from "@vela/shared-types";
 
 import { LM } from "./detector";
 
+const LEFT_LEG = [LM.LEFT_HIP, LM.LEFT_KNEE, LM.LEFT_ANKLE] as const;
+const RIGHT_LEG = [LM.RIGHT_HIP, LM.RIGHT_KNEE, LM.RIGHT_ANKLE] as const;
+const LEFT_FOOT = [LM.LEFT_ANKLE, LM.LEFT_HEEL, LM.LEFT_FOOT_INDEX] as const;
+const RIGHT_FOOT = [LM.RIGHT_ANKLE, LM.RIGHT_HEEL, LM.RIGHT_FOOT_INDEX] as const;
+const HIP_LINE = [LM.LEFT_HIP, LM.RIGHT_HIP] as const;
+const LEFT_ARM = [LM.LEFT_SHOULDER, LM.LEFT_ELBOW, LM.LEFT_WRIST] as const;
+const RIGHT_ARM = [LM.RIGHT_SHOULDER, LM.RIGHT_ELBOW, LM.RIGHT_WRIST] as const;
+const WRIST_LINE = [LM.LEFT_WRIST, LM.RIGHT_WRIST] as const;
+
 /** Default joints to highlight per rule. The rules engine emits a
  *  `side` for laterality-aware rules (e.g. KNEE_CAVE on the left); we
  *  use that to scope the highlight to the offending leg/arm. `"both"`
- *  and missing `side` both light up both legs — better an over-broad
+ *  and missing `side` both light up both sides — better an over-broad
  *  flash than a missing one. */
 export function landmarksForRule(
   ruleId: string,
   side?: RiskSide,
 ): readonly number[] {
-  if (ruleId === "KNEE_CAVE") {
-    if (side === "left") return [LM.LEFT_HIP, LM.LEFT_KNEE, LM.LEFT_ANKLE];
-    if (side === "right") return [LM.RIGHT_HIP, LM.RIGHT_KNEE, LM.RIGHT_ANKLE];
-    return [
-      LM.LEFT_HIP,
-      LM.LEFT_KNEE,
-      LM.LEFT_ANKLE,
-      LM.RIGHT_HIP,
-      LM.RIGHT_KNEE,
-      LM.RIGHT_ANKLE,
-    ];
+  switch (ruleId) {
+    case "KNEE_CAVE":
+      if (side === "left") return LEFT_LEG;
+      if (side === "right") return RIGHT_LEG;
+      return [...LEFT_LEG, ...RIGHT_LEG];
+    case "HEEL_LIFT":
+      // Highlight the foot triangle so the lifter sees which heel
+      // came up; the leg landmarks aren't the issue here, the foot is.
+      if (side === "left") return LEFT_FOOT;
+      if (side === "right") return RIGHT_FOOT;
+      return [...LEFT_FOOT, ...RIGHT_FOOT];
+    case "DEPTH_ASYMMETRY":
+      // Asymmetry is a comparison, not a side problem. Light up both
+      // hips so the lifter sees the level mismatch.
+      return HIP_LINE;
+    case "UNEVEN_PRESS":
+      // Bench rule: the bar is tilted left vs right. Symmetric problem,
+      // light both wrists so the lifter sees the height mismatch.
+      return WRIST_LINE;
+    case "BAR_PATH_DRIFT":
+      // Bench rule: one wrist has drifted off the over-shoulder line.
+      // Highlight just the offending arm chain so the cue ("stack the
+      // bar") has a visual anchor on the right side.
+      if (side === "left") return LEFT_ARM;
+      if (side === "right") return RIGHT_ARM;
+      return [...LEFT_ARM, ...RIGHT_ARM];
+    default:
+      return [];
   }
-  return [];
 }
 
 export type DrawPoseOptions = {

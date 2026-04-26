@@ -18,9 +18,10 @@
  *      flush, `POST /api/sessions/{id}/end`, and navigate to the
  *      session report so the post-set agent can take over.
  *
- * v1 ships HTTP event posting only. The WebSocket cue stream
- * (`apps/api/ws/session.py`) is its own follow-up because it adds
- * connection lifecycle on top of an already-busy component.
+ * v1 ships HTTP event posting plus a WebSocket cue stream
+ * (`apps/api/ws/session.py`) for agent-personalized in-set voice cues.
+ * The static `getDefaultCue` table is still used as a fallback when
+ * the socket isn't ready yet or the agent round-trip fails.
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -46,6 +47,7 @@ import {
 } from "@/lib/api-client";
 import { getPoseLandmarker, type PoseFrame } from "@/lib/pose/detector";
 import { drawPose, landmarksForRule } from "@/lib/pose/draw";
+import { CueStream } from "@/lib/realtime/cueStream";
 import { createEngine, type RulesEngine } from "@/lib/rules/engine";
 import { getDefaultCue } from "@/lib/voice/cues";
 import { cancelSpeech, resetSpeechCooldown, speak, warmUpSpeech } from "@/lib/voice/speech";
@@ -72,6 +74,21 @@ const HIGHLIGHT_TTL_MS = 1500;
  *  abandoned. */
 const MUTE_STORAGE_KEY = "vela.voice.muted";
 
+/** Minimum gap between two cues for the *same* rule, in ms. The engine's
+ *  session-long dedup is correct for the event log but wrong for voice:
+ *  if the rep counter ever reuses a `rep_index` (e.g. the lifter doesn't
+ *  fully stand up between reps), we'd go silent for the rest of the set.
+ *  This per-rule cooldown lets the cue re-fire on later reps while still
+ *  preventing machine-gun coaching when the same rule fires many frames
+ *  in a row. The global cooldown inside `speak()` is a separate guard
+ *  that keeps two *different* rules from talking over each other.
+ *
+ *  Also gates how often we hit the agent over the WebSocket — we mark
+ *  the timestamp at *send time*, not on cue arrival, so an in-flight
+ *  agent round-trip doesn't get duplicated by the next frame's events
+ *  for the same rule. */
+const PER_RULE_CUE_COOLDOWN_MS = 5000;
+
 export function LiftCapture({ lift }: { lift: Lift }) {
   const api = useApi();
   const router = useRouter();
@@ -89,6 +106,13 @@ export function LiftCapture({ lift }: { lift: Lift }) {
    *  to it. Using a ref (not state) so we don't re-render on every
    *  rule fire — the canvas redraws on its own each frame anyway. */
   const highlightsRef = useRef<Map<number, number>>(new Map());
+  /** rule_id → last `performance.now()` we spoke a cue for that rule.
+   *  See `PER_RULE_CUE_COOLDOWN_MS` for the rationale. */
+  const lastCueAtRef = useRef<Map<string, number>>(new Map());
+  /** Live WebSocket to `/ws/sessions/:id`. The agent on the other end
+   *  returns personalized cues; if it isn't ready (or errors), we fall
+   *  back to `getDefaultCue` so the demo never goes silent. */
+  const cueStreamRef = useRef<CueStream | null>(null);
 
   const [phase, setPhase] = useState<Phase>({ kind: "idle" });
   const [eventLog, setEventLog] = useState<RiskEvent[]>([]);
@@ -149,6 +173,11 @@ export function LiftCapture({ lift }: { lift: Lift }) {
     sessionIdRef.current = null;
     frameCounterRef.current = 0;
     highlightsRef.current.clear();
+    lastCueAtRef.current.clear();
+    if (cueStreamRef.current) {
+      cueStreamRef.current.close();
+      cueStreamRef.current = null;
+    }
     const canvas = canvasRef.current;
     if (canvas) {
       canvas
@@ -174,6 +203,7 @@ export function LiftCapture({ lift }: { lift: Lift }) {
     // so the very first event of this set is guaranteed to speak.
     warmUpSpeech();
     resetSpeechCooldown();
+    lastCueAtRef.current.clear();
 
     setPhase({ kind: "preparing", step: "camera" });
     let stream: MediaStream;
@@ -225,6 +255,29 @@ export function LiftCapture({ lift }: { lift: Lift }) {
     }
     sessionIdRef.current = session.session_id;
 
+    // Open the cue stream as soon as we have a session id. The server
+    // sets up the Backboard assistant + thread inside `accept()`; we
+    // gate `sendEvents()` on `isReady()` so events that arrive in the
+    // first ~hundred ms (before the `ready` frame) don't race the
+    // setup and get rejected with `setup_failed`.
+    cueStreamRef.current = new CueStream({
+      onCue: (text) => {
+        // Mute is a UI-level decision; if the lifter muted between
+        // sending the events and the cue coming back, skip speaking
+        // but keep the WS alive so the next set still benefits.
+        if (mutedRef.current) return;
+        speak(text);
+      },
+      onError: (msg) => {
+        // Don't crash the set on agent failures — we already optimistic-
+        // gated the per-rule cooldown when sending, so the next event
+        // for that rule will retry in PER_RULE_CUE_COOLDOWN_MS. Just
+        // log so devs can see why a cue went silent.
+        console.warn("[LiftCapture] cue stream error", msg);
+      },
+    });
+    cueStreamRef.current.connect(session.session_id);
+
     const engine = createEngine({
       lift,
       thresholds: {},
@@ -243,15 +296,34 @@ export function LiftCapture({ lift }: { lift: Lift }) {
         for (const idx of landmarksForRule(event.rule_id, event.side)) {
           highlightsRef.current.set(idx, expiresAt);
         }
-        // Speak only on first fire per (rule, rep, side). Repeated
-        // upgrades of the same event from `info` -> `warn` shouldn't
-        // re-trigger a cue mid-rep — the highlight is already visible
-        // and the lifter only needs the verbal nudge once. The 2.5s
-        // cooldown inside `speak()` is the second line of defense
-        // against cascading rule fires across reps.
-        if (isNew && !mutedRef.current) {
-          const cue = getDefaultCue(event.rule_id, event.side);
-          if (cue) speak(cue);
+        // Voice gating is intentionally independent of `isNew`. The
+        // engine's `isNew` is session-long-deduped on (rule, rep, side),
+        // which is right for the event log but goes silent forever if
+        // the rep counter reuses a `rep_index`. Instead we keep our own
+        // per-rule "last spoken at" timestamp so the cue can re-fire on
+        // a later rep while still avoiding spam mid-rep.
+        if (!mutedRef.current) {
+          const now = performance.now();
+          const lastAt = lastCueAtRef.current.get(event.rule_id) ?? 0;
+          if (now - lastAt >= PER_RULE_CUE_COOLDOWN_MS) {
+            // Prefer the agent. If the WS is up, hand it the event
+            // and stamp the cooldown immediately so the next frame's
+            // duplicate event doesn't fire a second round-trip while
+            // this one is in flight. The cue text comes back via the
+            // `onCue` callback we wired into the CueStream above.
+            const stream = cueStreamRef.current;
+            if (stream && stream.sendEvents([event])) {
+              lastCueAtRef.current.set(event.rule_id, now);
+            } else {
+              // WS not ready yet (first ~half-second of the set) or
+              // closed mid-set. Fall back to the static default so the
+              // lifter still gets *something* for the very first rep.
+              const cue = getDefaultCue(event.rule_id, event.side);
+              if (cue && speak(cue)) {
+                lastCueAtRef.current.set(event.rule_id, now);
+              }
+            }
+          }
         }
       },
     });

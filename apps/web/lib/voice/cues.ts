@@ -21,6 +21,10 @@ import type { RiskSide } from "@vela/shared-types";
 /** Map of rule_id → cue text. Add new rules here as the engine grows. */
 const DEFAULT_CUES: Record<string, string> = {
   KNEE_CAVE: "Drive your knees out",
+  HEEL_LIFT: "Push through your heels",
+  DEPTH_ASYMMETRY: "Even out your depth",
+  UNEVEN_PRESS: "Press both arms together",
+  BAR_PATH_DRIFT: "Stack the bar over your shoulders",
 };
 
 export function getDefaultCue(
