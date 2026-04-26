@@ -207,7 +207,14 @@ class MemoryUpdate(BaseModel):
 class MemoryUpdatesResponse(BaseModel):
     session_id: str
     memory_updates: list[MemoryUpdate] = Field(
-        description="Newest first. Empty when the agent didn't log_observation."
+        description=(
+            "Newest first. Always contains at least the deterministic "
+            "session_telemetry rollup written at the end of post_set_loop "
+            "(see agents/loops.py); LLM-driven log_observation entries "
+            "appear above it when the agent flagged a personalized "
+            "pattern. Empty only when the report has not been generated "
+            "yet for this session."
+        )
     )
 
 
@@ -240,16 +247,21 @@ async def memory_updates(
 
     Powers the §6.3 "memory updates" collapsible: a transparent record of
     everything the agent decided to remember about the lifter from this
-    session's telemetry. The agent writes these via the ``log_observation``
-    tool, which always stamps ``metadata.session_id`` onto the memory
-    (see ``agents/tools.py``).
+    session's telemetry. Two write paths feed this list:
+
+      1. Deterministic ``session_telemetry`` rollup written at the end of
+         ``post_set_loop`` regardless of what the LLM did — every
+         generated report adds at least this one entry.
+      2. LLM-driven ``log_observation`` (and ``update_threshold``) calls
+         the agent makes during the run, which always stamp
+         ``metadata.session_id`` onto the memory (see ``agents/tools.py``).
 
     The Backboard SDK has no server-side metadata filter, so we page
     through ``get_memories`` and filter client-side. Memories are returned
     newest-first to match the rest of the report timelines.
 
-    Returns an empty list (200, not 404) when no observations were logged —
-    that's a valid demo state ("nothing worth remembering this set").
+    Returns an empty list (200, not 404) when no report has been generated
+    yet for this session.
     """
     require_session_owner(session_id, current_user_id, db)
     try:

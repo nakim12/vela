@@ -81,8 +81,22 @@ TOOL_DEFS: list[dict[str, Any]] = [
                     "rule_id": {"type": "string"},
                     "new_value": {"type": "number"},
                     "justification": {"type": "string"},
+                    "evidence_session_id": {
+                        "type": "string",
+                        "description": (
+                            "Session id whose telemetry motivates this "
+                            "override. Required so the resulting memory "
+                            "shows up in the originating session's "
+                            "'What the agent learned' panel."
+                        ),
+                    },
                 },
-                "required": ["rule_id", "new_value", "justification"],
+                "required": [
+                    "rule_id",
+                    "new_value",
+                    "justification",
+                    "evidence_session_id",
+                ],
             },
         },
     },
@@ -197,7 +211,17 @@ async def dispatch(
                 f"[threshold] {arguments['rule_id']} = {arguments['new_value']} "
                 f"— {arguments['justification']}"
             ),
-            metadata={"category": "threshold", "rule_id": arguments["rule_id"]},
+            metadata={
+                "category": "threshold",
+                "rule_id": arguments["rule_id"],
+                # Tag with session id so the resulting memory shows up in
+                # the originating session's "What the agent learned" panel.
+                # Old memories written before evidence_session_id was a
+                # required arg won't have this — they'll keep showing in
+                # the global lifter memory but stop appearing per-session,
+                # which matches what the panel's docstring promises.
+                "session_id": arguments["evidence_session_id"],
+            },
         )
         return json.dumps({"ok": True})
 

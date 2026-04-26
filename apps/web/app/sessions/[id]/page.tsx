@@ -310,8 +310,9 @@ export default function SessionDetailPage({
                   )}
                   {memories && memories.length === 0 && !memoryError && (
                     <p className="text-sm text-zinc-500">
-                      No memories logged for this session yet. Generate the
-                      report above to trigger the agent.
+                      Nothing here yet. Generate the report above and the
+                      agent&rsquo;s observations from this session will
+                      appear here.
                     </p>
                   )}
                   {memories && memories.length > 0 && (
