@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { UserButton } from "@clerk/nextjs";
@@ -25,18 +26,55 @@ const NAV = [
  */
 export function AppHeader() {
   const pathname = usePathname();
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setIsScrolled(window.scrollY > 8);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   return (
-    <header className="sticky top-0 z-30 border-b border-white/5 bg-zinc-950/80 backdrop-blur-xl">
+    <>
+      <header
+        className={
+          "fixed inset-x-0 top-0 z-50 transition-all duration-500 " +
+          (isScrolled ? "px-3 pt-2" : "px-0 pt-0")
+        }
+        style={{ transitionTimingFunction: "cubic-bezier(0.22, 1, 0.36, 1)" }}
+      >
+      <div
+        role="presentation"
+        className={
+          "mx-auto border bg-zinc-900/70 backdrop-blur-xl transition-[width,border-radius,transform,box-shadow,background-color,border-color] duration-700 " +
+          (isScrolled
+            ? "translate-y-0 border-white/15 shadow-[0_14px_34px_-18px_rgba(0,0,0,0.78)]"
+            : "border-white/10 shadow-none")
+        }
+        style={{
+          width: isScrolled ? "min(72rem, calc(100% - 1.5rem))" : "100%",
+          borderRadius: isScrolled ? "1rem" : "0rem",
+          transitionTimingFunction: "cubic-bezier(0.4, 0, 0.2, 1)",
+          transitionProperty:
+            "width, border-radius, transform, box-shadow, background-color, border-color",
+          transitionDuration: isScrolled
+            ? "700ms, 700ms, 700ms, 700ms, 700ms, 700ms"
+            : "700ms, 180ms, 700ms, 700ms, 700ms, 700ms",
+          transitionDelay: isScrolled
+            ? "0ms, 0ms, 0ms, 0ms, 0ms, 0ms"
+            : "0ms, 520ms, 0ms, 0ms, 0ms, 0ms",
+        }}
+      >
       <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-6 py-3">
         <div className="flex items-center gap-6">
-          <Link href="/" className="inline-flex items-center gap-2.5">
-            <span className="grid size-7 place-items-center rounded-md border border-sky-400/30 bg-sky-400/10 text-sky-300">
-              <span className="size-1.5 rounded-full bg-sky-400 shadow-[0_0_10px_rgba(56,189,248,0.5)]" />
+          <Link href="/" className="inline-flex items-center gap-2.5 p-2">
+            <span className="grid size-7 place-items-center rounded-md border border-white/30 bg-white/10 text-white">
+              <span className="size-1.5 rounded-full bg-white" />
             </span>
             <span className="text-sm font-semibold tracking-tight">Vela</span>
           </Link>
-          <nav className="hidden items-center gap-5 text-sm text-zinc-400 md:flex">
+          <nav className="hidden items-center gap-5 text-sm text-zinc-300 md:flex">
             {NAV.map((item) => {
               const active =
                 pathname === item.href || pathname.startsWith(`${item.href}/`);
@@ -46,7 +84,7 @@ export function AppHeader() {
                   href={item.href}
                   className={
                     "transition " +
-                    (active ? "text-sky-300" : "hover:text-zinc-100")
+                    (active ? "text-white" : "hover:text-zinc-100")
                   }
                 >
                   {item.label}
@@ -64,6 +102,9 @@ export function AppHeader() {
           }}
         />
       </div>
-    </header>
+      </div>
+      </header>
+      <div className="h-[76px]" aria-hidden />
+    </>
   );
 }
