@@ -28,6 +28,9 @@ const RIGHT_LEG = [LM.RIGHT_HIP, LM.RIGHT_KNEE, LM.RIGHT_ANKLE] as const;
 const LEFT_FOOT = [LM.LEFT_ANKLE, LM.LEFT_HEEL, LM.LEFT_FOOT_INDEX] as const;
 const RIGHT_FOOT = [LM.RIGHT_ANKLE, LM.RIGHT_HEEL, LM.RIGHT_FOOT_INDEX] as const;
 const HIP_LINE = [LM.LEFT_HIP, LM.RIGHT_HIP] as const;
+const LEFT_ARM = [LM.LEFT_SHOULDER, LM.LEFT_ELBOW, LM.LEFT_WRIST] as const;
+const RIGHT_ARM = [LM.RIGHT_SHOULDER, LM.RIGHT_ELBOW, LM.RIGHT_WRIST] as const;
+const WRIST_LINE = [LM.LEFT_WRIST, LM.RIGHT_WRIST] as const;
 
 /** Default joints to highlight per rule. The rules engine emits a
  *  `side` for laterality-aware rules (e.g. KNEE_CAVE on the left); we
@@ -53,6 +56,17 @@ export function landmarksForRule(
       // Asymmetry is a comparison, not a side problem. Light up both
       // hips so the lifter sees the level mismatch.
       return HIP_LINE;
+    case "UNEVEN_PRESS":
+      // Bench rule: the bar is tilted left vs right. Symmetric problem,
+      // light both wrists so the lifter sees the height mismatch.
+      return WRIST_LINE;
+    case "BAR_PATH_DRIFT":
+      // Bench rule: one wrist has drifted off the over-shoulder line.
+      // Highlight just the offending arm chain so the cue ("stack the
+      // bar") has a visual anchor on the right side.
+      if (side === "left") return LEFT_ARM;
+      if (side === "right") return RIGHT_ARM;
+      return [...LEFT_ARM, ...RIGHT_ARM];
     default:
       return [];
   }

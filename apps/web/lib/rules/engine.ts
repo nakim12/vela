@@ -39,7 +39,8 @@ import type { Lift, RiskEvent } from "@vela/shared-types";
 
 import type { PoseFrame } from "@/lib/pose/detector";
 
-import { createSquatRepCounter, type RepCounter, type RepCounterState } from "./repCounter";
+import { BENCH_RULES } from "./bench";
+import { createRepCounterForLift, type RepCounter, type RepCounterState } from "./repCounter";
 import { SQUAT_RULES, type Rule } from "./squat";
 
 export type EngineEvent = {
@@ -73,13 +74,25 @@ export type EngineConfig = {
 };
 
 export function createEngine(config: EngineConfig): RulesEngine {
-  if (config.lift !== "squat") {
-    // Bench / deadlift rules will plug in here later. Until then we
-    // still build a working engine (rep counter runs) so the UI can
-    // demo on those lifts even without rule coverage.
-    return buildEngine([], createSquatRepCounter(), config);
+  return buildEngine(
+    rulesForLift(config.lift),
+    createRepCounterForLift(config.lift),
+    config,
+  );
+}
+
+/** Resolve the active rule set for a given lift. Deadlift returns []
+ *  so the rep counter still runs (the UI demos cleanly even without
+ *  rule coverage). New lifts plug their rule arrays in here. */
+function rulesForLift(lift: Lift): Rule[] {
+  switch (lift) {
+    case "squat":
+      return SQUAT_RULES;
+    case "bench":
+      return BENCH_RULES;
+    case "deadlift":
+      return [];
   }
-  return buildEngine(SQUAT_RULES, createSquatRepCounter(), config);
 }
 
 function buildEngine(
