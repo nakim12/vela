@@ -4,3 +4,4 @@ export * from "./onboarding";
 export * from "./coach";
 export * from "./sessions";
 export * from "./trends";
+export * from "./pre-session";

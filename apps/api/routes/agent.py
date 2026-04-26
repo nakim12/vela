@@ -141,6 +141,59 @@ async def pre_session(
     )
 
 
+class UserPreSessionResponse(BaseModel):
+    """Session-less twin of ``PreSessionBanner.target``.
+
+    Used by the FE to render a "Today's plan" banner on ``/lift/[lift]``
+    *before* the user starts a session. We deliberately skip the LLM
+    watch-list lines here — calling ``pre_session_loop`` on every page
+    load would be slow and expensive, and the actual prescription
+    (weight / reps / sets) is what the user wants to see.
+
+    The narrative justification for the number lives on the source
+    session's report; the FE can deep-link to it via ``source_session_id``.
+    """
+
+    lift: Literal["squat", "bench", "deadlift"]
+    target: PreSessionTarget | None = Field(
+        description="Latest prescription written by the post-set agent's "
+        "``recommend_load`` call for this (user, lift). Null when the user "
+        "is brand-new to this lift (no session has finished yet)."
+    )
+
+
+@router.get(
+    "/user/pre",
+    response_model=UserPreSessionResponse,
+    summary="Today's prescribed top set for a lift, no session required",
+)
+def user_pre(
+    lift: Literal["squat", "bench", "deadlift"] = Query(
+        ..., description="Which lift to fetch the prescription for."
+    ),
+    db: Session = Depends(get_db),
+    current_user_id: str = Depends(get_effective_user_id),
+) -> UserPreSessionResponse:
+    """Read the standing prescription from the ``programs`` table.
+
+    No LLM in the loop — the agent already did its reasoning at the end
+    of the previous session via ``recommend_load``; this endpoint just
+    surfaces that decision for the FE banner.
+    """
+    program = db.get(Program, (current_user_id, lift))
+    target = (
+        PreSessionTarget(
+            weight_lb=program.weight_lb,
+            reps=program.reps,
+            sets=program.sets,
+            source_session_id=program.source_session_id,
+        )
+        if program is not None
+        else None
+    )
+    return UserPreSessionResponse(lift=lift, target=target)
+
+
 class MemoryUpdate(BaseModel):
     id: str
     category: str | None = Field(
