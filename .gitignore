@@ -21,8 +21,12 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
-lib64/
+# Python build artifact at repo root only. Do NOT make this a bare `lib/`
+# pattern — it would match apps/web/lib/, which contains the Next.js client
+# library (Francis's pose/rules/segmenter/tts, the shadcn `lib/utils.ts`,
+# and the per-domain api client).
+/lib/
+/lib64/
 parts/
 sdist/
 var/

@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@base-ui/react": "^1.4.1",
+    "@clerk/nextjs": "^7.2.7",
     "@mediapipe/tasks-vision": "^0.10.22",
     "@radix-ui/react-slot": "^1.2.4",
     "@vela/shared-types": "*",
@@ -20,6 +21,7 @@
     "next": "15.5.15",
     "react": "19.1.0",
     "react-dom": "19.1.0",
+    "react-markdown": "^10.1.0",
     "recharts": "^2.15",
     "shadcn": "^4.5.0",
     "tailwind-merge": "^3.5.0",

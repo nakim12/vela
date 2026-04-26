@@ -42,8 +42,6 @@ export type RiskEvent = {
 // ---------------------------------------------------------------------------
 
 export type SessionCreate = {
-  /** Temporary stub until Clerk auth lands. */
-  user_id: string;
   lift: Lift;
 };
 
@@ -131,6 +129,27 @@ export type SetsResponse = {
 };
 
 // ---------------------------------------------------------------------------
+// GET /api/sessions  (list user's sessions, owned by BE-A)
+// ---------------------------------------------------------------------------
+
+/** Lightweight summary row for the `/sessions` history view. Omits the
+ *  full event/set payloads — fetch the per-session report for those. */
+export type SessionListItem = {
+  session_id: string;
+  user_id: string;
+  lift: Lift;
+  started_at: IsoDateTime;
+  ended_at: IsoDateTime | null;
+  /** Total RiskEvent rows persisted for this session. */
+  event_count: number;
+};
+
+export type SessionListResponse = {
+  user_id: string;
+  sessions: SessionListItem[];
+};
+
+// ---------------------------------------------------------------------------
 // GET /api/sessions/:id/report
 // ---------------------------------------------------------------------------
 
@@ -159,9 +178,9 @@ export type ThresholdsResponse = {
   thresholds: ThresholdOut[];
 };
 
+/** Body for `PUT /api/user/thresholds/{rule_id}`.
+ *  `user_id` is resolved from the Clerk session token, not the body. */
 export type ThresholdUpsert = {
-  /** Temporary stub until Clerk auth lands. */
-  user_id: string;
   value: number;
   justification?: string | null;
   source_session_id?: string | null;
@@ -189,9 +208,9 @@ export type ProgramsResponse = {
   programs: ProgramOut[];
 };
 
+/** Body for `PUT /api/user/programs/{lift}`.
+ *  `user_id` is resolved from the Clerk session token, not the body. */
 export type ProgramUpsert = {
-  /** Temporary stub until Clerk auth lands. */
-  user_id: string;
   weight_lb: number;
   reps: number;
   sets: number;
@@ -202,10 +221,27 @@ export type ProgramUpsert = {
 // GET /api/sessions/:id/pre  (agent-driven, owned by BE-B)
 // ---------------------------------------------------------------------------
 
+/** Today's prescribed top set for this lift. Persisted by the agent's
+ *  `recommend_load` tool at the end of the prior session and read straight
+ *  from the `programs` table — no LLM in the loop, so the numbers are
+ *  exact. `null` when the user has no prior prescription on file. */
+export type PreSessionTarget = {
+  weight_lb: number;
+  reps: number;
+  sets: number;
+  /** Session whose post-set agent run produced this target. Useful for a
+   *  "why is this my target?" affordance in the FE. */
+  source_session_id?: string | null;
+};
+
 /** Two-line "today's watch list" banner returned by the pre-session loop.
  *  Line 1 covers injury / regression notes; line 2 covers mobility /
  *  anthropometry. Either line may be `"No notable history."` when nothing
- *  applies. The frontend should render `lines[0]` and `lines[1]` directly. */
+ *  applies. The frontend should render `lines[0]` and `lines[1]` directly.
+ *
+ *  `target` is appended separately so the FE can render a "Today: 150x5x3"
+ *  pill alongside the agent banner. It comes from the deterministic DB
+ *  read, not the LLM. */
 export type PreSessionBanner = {
   session_id: string;
   lift: Lift;
@@ -214,6 +250,8 @@ export type PreSessionBanner = {
   /** `banner` split on newline, blank lines stripped. Always length 2 in
    *  the happy path; may be shorter if the agent misformats. */
   lines: string[];
+  /** `null` for fresh users with no `recommend_load` prescription yet. */
+  target?: PreSessionTarget | null;
 };
 
 // ---------------------------------------------------------------------------
@@ -230,10 +268,10 @@ export type Anthropometrics = {
   femur_torso_ratio?: number;
 };
 
-/** Body for `POST /api/onboarding`. Mirrors the §5.3 onboarding form. */
+/** Body for `POST /api/onboarding`. Mirrors the §5.3 onboarding form.
+ *  User id comes from the Clerk session (or `?user_id=` in local dev
+ *  without Clerk). */
 export type OnboardingIn = {
-  /** Temporary stub until Clerk auth lands. */
-  user_id: string;
   email?: string | null;
   anthropometrics?: Anthropometrics;
   /** Free-text injury / regression notes; one Backboard memory per item. */

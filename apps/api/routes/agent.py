@@ -22,9 +22,10 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel, Field
 
 from agents.loops import coach_chat_loop, post_set_loop, pre_session_loop
+from auth import get_effective_user_id, require_session_owner
 from bb import get_client
 from db import stubs as db_stubs
-from db.models import RiskEventRow, WorkoutSession
+from db.models import Program, RiskEventRow, WorkoutSession
 from db.session import get_db
 from store import get_events as store_get_events
 
@@ -42,6 +43,26 @@ _MEMORY_PAGE_SIZE = 100
 _MEMORY_MAX_PAGES = 10
 
 
+class PreSessionTarget(BaseModel):
+    """Today's prescribed top set for this lift, persisted by ``recommend_load``.
+
+    None when the user is brand-new and the agent hasn't called
+    ``recommend_load`` yet (or BE-A's ``programs`` table is empty for this
+    user/lift). FE should treat absence as "no target yet" rather than
+    "go warm up forever".
+    """
+
+    weight_lb: float
+    reps: int
+    sets: int
+    source_session_id: str | None = Field(
+        default=None,
+        description="The session whose post-set agent run produced this "
+        "target (via recommend_load). Useful for 'why is this my target?' "
+        "drill-downs in the FE.",
+    )
+
+
 class PreSessionBanner(BaseModel):
     session_id: str
     lift: str
@@ -51,26 +72,32 @@ class PreSessionBanner(BaseModel):
     lines: list[str] = Field(
         description="Banner split on newlines (empty lines stripped).",
     )
+    target: PreSessionTarget | None = Field(
+        default=None,
+        description="Most recent prescription from the post-set agent's "
+        "recommend_load call. Read straight from the programs table — no "
+        "LLM in the loop — so the numbers are deterministic and stable.",
+    )
 
 
 @router.get(
     "/sessions/{session_id}/pre",
     response_model=PreSessionBanner,
-    summary="Pre-session watch list (2 lines: injuries / mobility)",
+    summary="Pre-session watch list (2 lines: injuries / mobility) + today's target",
 )
-async def pre_session(session_id: str) -> PreSessionBanner:
+async def pre_session(
+    session_id: str,
+    db: Session = Depends(get_db),
+    current_user_id: str = Depends(get_effective_user_id),
+) -> PreSessionBanner:
     """Generate today's watch list for the lifter starting this session.
 
     Returns 2 lines pulled from the agent's per-user knowledge graph:
       * line 1: relevant injury notes / recent regressions
       * line 2: mobility flags / anthropometry considerations
     Either line may be ``"No notable history."`` if nothing applies.
-
-    Uses ``db_stubs`` (same as the WS handler) so the source of truth for
-    user / session lookups stays consistent with the rest of the agent layer.
-    Once BE-A swaps stubs.py to DB-backed queries, this endpoint inherits
-    that automatically.
     """
+    require_session_owner(session_id, current_user_id, db)
     try:
         session = db_stubs.get_session(session_id)
     except KeyError:
@@ -92,11 +119,25 @@ async def pre_session(session_id: str) -> PreSessionBanner:
 
     cleaned = banner.strip()
     lines = [ln for ln in cleaned.splitlines() if ln.strip()]
+
+    program = db.get(Program, (session.user_id, session.lift))
+    target = (
+        PreSessionTarget(
+            weight_lb=program.weight_lb,
+            reps=program.reps,
+            sets=program.sets,
+            source_session_id=program.source_session_id,
+        )
+        if program is not None
+        else None
+    )
+
     return PreSessionBanner(
         session_id=session_id,
         lift=session.lift,
         banner=cleaned,
         lines=lines,
+        target=target,
     )
 
 
@@ -137,7 +178,11 @@ def _memory_category(meta: Any) -> str | None:
     response_model=MemoryUpdatesResponse,
     summary="Memories the agent wrote during this session (log_observation)",
 )
-async def memory_updates(session_id: str) -> MemoryUpdatesResponse:
+async def memory_updates(
+    session_id: str,
+    db: Session = Depends(get_db),
+    current_user_id: str = Depends(get_effective_user_id),
+) -> MemoryUpdatesResponse:
     """List Backboard memories tagged with this ``session_id``.
 
     Powers the §6.3 "memory updates" collapsible: a transparent record of
@@ -153,6 +198,7 @@ async def memory_updates(session_id: str) -> MemoryUpdatesResponse:
     Returns an empty list (200, not 404) when no observations were logged —
     that's a valid demo state ("nothing worth remembering this set").
     """
+    require_session_owner(session_id, current_user_id, db)
     try:
         session = db_stubs.get_session(session_id)
     except KeyError:
@@ -198,6 +244,66 @@ async def memory_updates(session_id: str) -> MemoryUpdatesResponse:
     return MemoryUpdatesResponse(session_id=session_id, memory_updates=matched)
 
 
+@router.delete(
+    "/sessions/{session_id}/memory_updates/{memory_id}",
+    status_code=204,
+    summary="Delete one memory the agent wrote during this session",
+)
+async def delete_memory_update(session_id: str, memory_id: str) -> None:
+    """Remove a single Backboard memory the agent logged.
+
+    Powers the §6.3 §5 "memory updates are editable/deletable" promise:
+    if the lifter sees an observation in the post-set report that's wrong
+    ("you don't have a left labrum repair, that was your right shoulder"),
+    they can prune it so it stops poisoning future personalization.
+
+    Two safety checks before we forward the delete to Backboard:
+      1. The session exists.
+      2. The memory's ``metadata.session_id`` matches the path's
+         ``session_id``. Without this check, the route would let any
+         memory_id be deleted by guessing its parent session — Backboard
+         doesn't enforce the link itself.
+    """
+    try:
+        session = db_stubs.get_session(session_id)
+    except KeyError:
+        raise HTTPException(status_code=404, detail="session not found")
+
+    user = db_stubs.get_user(session.user_id)
+    assistant_id = user.backboard_assistant_id
+    if not assistant_id:
+        raise HTTPException(status_code=404, detail="memory not found")
+
+    client = get_client()
+    try:
+        mem = await client.get_memory(assistant_id, memory_id)
+    except Exception as e:
+        log.warning(
+            "get_memory failed for memory_id=%s on assistant=%s: %s",
+            memory_id, assistant_id, e,
+        )
+        raise HTTPException(status_code=404, detail="memory not found") from e
+
+    if _memory_session_id(mem.metadata) != session_id:
+        # Memory exists but isn't tagged to this session — refuse so the URL
+        # path can't be used to delete arbitrary memories cross-session.
+        raise HTTPException(
+            status_code=404,
+            detail="memory not found for this session",
+        )
+
+    try:
+        await client.delete_memory(assistant_id, memory_id)
+    except Exception as e:
+        log.exception(
+            "delete_memory failed for memory_id=%s on assistant=%s",
+            memory_id, assistant_id,
+        )
+        raise HTTPException(
+            status_code=502, detail=f"backboard_failed: {e}"
+        ) from e
+
+
 class PostSetSummaryResponse(BaseModel):
     session_id: str
     summary_md: str = Field(
@@ -226,6 +332,7 @@ async def post_set_summary(
         "Costs LLM credits; mainly useful for re-rolling cues during demos.",
     ),
     db: Session = Depends(get_db),
+    current_user_id: str = Depends(get_effective_user_id),
 ) -> PostSetSummaryResponse:
     """Generate (or return cached) the post-set markdown report for a session.
 
@@ -240,6 +347,7 @@ async def post_set_summary(
     inputs and returns the output. See ``agents/loops.py`` for the prompt
     + workflow contract.
     """
+    require_session_owner(session_id, current_user_id, db)
     session = db.get(WorkoutSession, session_id)
     if session is None:
         raise HTTPException(status_code=404, detail="session not found")
@@ -321,10 +429,10 @@ class TrendsResponse(BaseModel):
     summary="Per-session rule-event counts for the trend chart",
 )
 def user_trends(
-    user_id: str,
     lift: Literal["squat", "bench", "deadlift"] | None = None,
     limit: int = Query(default=8, ge=1, le=50),
     db: Session = Depends(get_db),
+    user_id: str = Depends(get_effective_user_id),
 ) -> TrendsResponse:
     """Return up to ``limit`` recent sessions with risk-event counts per rule.
 
@@ -338,6 +446,10 @@ def user_trends(
     Sessions with zero flagged events still appear in the response (with an
     empty ``event_counts`` dict) — those are the "clean session" wins worth
     showing on the chart.
+
+    With Clerk, the subject is the JWT ``sub``. During local dev without
+    Clerk, ``?user_id=demo-user-2`` (optional) targets a second stub user
+    for multi-persona smoke tests.
     """
     sess_stmt = (
         select(WorkoutSession)
@@ -377,7 +489,6 @@ def user_trends(
 
 
 class CoachMessageIn(BaseModel):
-    user_id: str = Field(description="Lifter the message is being sent on behalf of.")
     message: str = Field(min_length=1, description="The user's chat message.")
 
 
@@ -391,7 +502,10 @@ class CoachMessageOut(BaseModel):
     response_model=CoachMessageOut,
     summary="Send a chat message to the coach agent",
 )
-async def coach_message(body: CoachMessageIn) -> CoachMessageOut:
+async def coach_message(
+    body: CoachMessageIn,
+    current_user_id: str = Depends(get_effective_user_id),
+) -> CoachMessageOut:
     """Free-form conversation with the user's coach assistant.
 
     The agent has access to the same tools as the in/post/pre loops
@@ -404,22 +518,17 @@ async def coach_message(body: CoachMessageIn) -> CoachMessageOut:
     until the API restarts. (Backboard memories outlive restarts, so even a
     fresh thread keeps personalization.)
     """
-    try:
-        db_stubs.get_user(body.user_id)
-    except KeyError:
-        raise HTTPException(status_code=404, detail="user not found")
-
     client = get_client()
     try:
         reply = await coach_chat_loop(
             client,
-            user_id=body.user_id,
+            user_id=current_user_id,
             message=body.message,
         )
     except Exception as e:
-        log.exception("coach_chat_loop failed for user %s", body.user_id)
+        log.exception("coach_chat_loop failed for user %s", current_user_id)
         raise HTTPException(
             status_code=502, detail=f"agent_failed: {e}"
         ) from e
 
-    return CoachMessageOut(user_id=body.user_id, reply=reply.strip())
+    return CoachMessageOut(user_id=current_user_id, reply=reply.strip())

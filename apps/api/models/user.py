@@ -20,7 +20,11 @@ class ThresholdsResponse(BaseModel):
 
 
 class ThresholdUpsert(BaseModel):
-    user_id: str = Field(..., description="Temporary stub until Clerk auth lands.")
+    """Body for ``PUT /api/user/thresholds/{rule_id}``.
+
+    ``user_id`` is resolved from the Clerk session token, not the body.
+    """
+
     value: float
     justification: str | None = None
     source_session_id: str | None = None
@@ -47,10 +51,10 @@ class ProgramUpsert(BaseModel):
     """Body for ``PUT /api/user/programs/{lift}``.
 
     The lift is carried in the path, not the body, to match the
-    ``PUT /api/user/thresholds/{rule_id}`` convention.
+    ``PUT /api/user/thresholds/{rule_id}`` convention. ``user_id`` is
+    resolved from the Clerk session token, not the body.
     """
 
-    user_id: str = Field(..., description="Temporary stub until Clerk auth lands.")
     weight_lb: float = Field(..., ge=0)
     reps: int = Field(..., ge=1)
     sets: int = Field(..., ge=1)
