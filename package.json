@@ -1,5 +1,5 @@
 {
-  "name": "vela",
+  "name": "romus",
   "private": true,
   "workspaces": ["apps/*", "packages/*"],
   "scripts": {

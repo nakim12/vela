@@ -1,4 +1,4 @@
-import type { RiskEvent } from "@vela/shared-types";
+import type { RiskEvent } from "@romus/shared-types";
 
 export function RiskBadge({ event }: { event: RiskEvent }) {
   return (

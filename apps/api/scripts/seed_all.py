@@ -2,7 +2,7 @@
 
 Wraps the three idempotent seeding scripts in the order they need to fire:
 
-  1. upload_corpus.py            — push the corpus to the shared "vela-corpus"
+  1. upload_corpus.py            — push the corpus to the shared "romus-corpus"
                                    assistant (skipped per file if already there).
   2. seed_demo_history.py        — backfill 4 prior workout sessions per persona
                                    so the trend chart has real data

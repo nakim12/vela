@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  transpilePackages: ["@vela/shared-types"],
+  transpilePackages: ["@romus/shared-types"],
 };
 
 export default nextConfig;

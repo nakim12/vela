@@ -1,5 +1,8 @@
 import Link from "next/link";
-import type { Lift } from "@vela/shared-types";
+import type { Lift } from "@romus/shared-types";
+
+import { AppHeader } from "@/components/AppHeader";
+import { TodayPlanBanner } from "@/components/TodayPlanBanner";
 
 import { AppHeader } from "@/components/AppHeader";
 import { TodayPlanBanner } from "@/components/TodayPlanBanner";

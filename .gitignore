@@ -229,7 +229,7 @@ __marimo__/
 .streamlit/secrets.toml
 
 # Local project plans (not committed)
-vela_project_plan.md
+romus_project_plan.md
 *_project_plan.md
 
 # Node / Next.js
