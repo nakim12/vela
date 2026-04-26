@@ -202,10 +202,27 @@ export type ProgramUpsert = {
 // GET /api/sessions/:id/pre  (agent-driven, owned by BE-B)
 // ---------------------------------------------------------------------------
 
+/** Today's prescribed top set for this lift. Persisted by the agent's
+ *  `recommend_load` tool at the end of the prior session and read straight
+ *  from the `programs` table — no LLM in the loop, so the numbers are
+ *  exact. `null` when the user has no prior prescription on file. */
+export type PreSessionTarget = {
+  weight_lb: number;
+  reps: number;
+  sets: number;
+  /** Session whose post-set agent run produced this target. Useful for a
+   *  "why is this my target?" affordance in the FE. */
+  source_session_id?: string | null;
+};
+
 /** Two-line "today's watch list" banner returned by the pre-session loop.
  *  Line 1 covers injury / regression notes; line 2 covers mobility /
  *  anthropometry. Either line may be `"No notable history."` when nothing
- *  applies. The frontend should render `lines[0]` and `lines[1]` directly. */
+ *  applies. The frontend should render `lines[0]` and `lines[1]` directly.
+ *
+ *  `target` is appended separately so the FE can render a "Today: 150x5x3"
+ *  pill alongside the agent banner. It comes from the deterministic DB
+ *  read, not the LLM. */
 export type PreSessionBanner = {
   session_id: string;
   lift: Lift;
@@ -214,6 +231,8 @@ export type PreSessionBanner = {
   /** `banner` split on newline, blank lines stripped. Always length 2 in
    *  the happy path; may be shorter if the agent misformats. */
   lines: string[];
+  /** `null` for fresh users with no `recommend_load` prescription yet. */
+  target?: PreSessionTarget | null;
 };
 
 // ---------------------------------------------------------------------------
