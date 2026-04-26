@@ -2,7 +2,7 @@
 
 **A real-time, browser-based form coach for the Big 3 — pose detection runs in your browser, an agentic Claude coach personalizes the cues, and the next session's prescription writes itself.**
 
-Built by [TEAM] — April 2026 — [Hackathon / Track]
+Built by Francis Le, Matthew Tran, Joseph Chong, & Nathan Kim — April 2026 — Sports & Fitness Track
 
 ## What is Romus?
 
