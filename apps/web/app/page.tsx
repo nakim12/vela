@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Show, SignInButton, UserButton } from "@clerk/nextjs";
+import { motion, useScroll, useSpring, useTransform } from "framer-motion";
 import {
   ArrowRight,
   ArrowUpRight,
@@ -30,6 +31,7 @@ function GithubMark({ className }: { className?: string }) {
 }
 
 import NeuralBackground from "@/components/ui/flow-field-background";
+import { RevealPreloader } from "@/components/ui/reveal-preloader";
 
 const navLinks = [
   { href: "#fix-one-rep", label: "Fix One Rep" },
@@ -137,19 +139,34 @@ const knownLifterCues = [
 ];
 
 export default function Home() {
+  const [showPreloader, setShowPreloader] = useState(true);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setShowPreloader(false);
+    }, 1150);
+
+    return () => window.clearTimeout(timer);
+  }, []);
+
   return (
     <div className="relative min-h-screen overflow-x-hidden bg-black text-zinc-100 selection:bg-white/20 selection:text-white">
+      <RevealPreloader show={showPreloader} text="Romus" />
       <SiteNav />
-      <Hero />
-      <StatsStrip />
-      <FixOneRep />
-      <HowItWorks />
-      <BigThree />
-      <FeedbackChannels />
-      <Personalization />
-      <Architecture />
-      <FinalCta />
-      <SiteFooter />
+      <div className="fixed inset-0 z-0">
+        <Hero />
+      </div>
+      <div className="relative z-20 mt-[100vh] bg-zinc-950">
+        <StatsStrip />
+        <FixOneRep />
+        <HowItWorks />
+        <BigThree />
+        <FeedbackChannels />
+        <Personalization />
+        <Architecture />
+        <FinalCta />
+        <SiteFooter />
+      </div>
     </div>
   );
 }
@@ -223,21 +240,21 @@ function SiteNav() {
         <div className="flex items-center gap-2">
           <a
             href="https://github.com"
-            className="hidden size-8 place-items-center rounded-md border border-white/10 text-zinc-400 transition hover:border-white/20 hover:text-zinc-100 sm:grid"
+            className="hidden size-10 place-items-center rounded-md border border-white/10 text-zinc-400 transition hover:border-white/20 hover:text-zinc-100 sm:grid"
             aria-label="GitHub"
           >
             <GithubMark className="size-4" />
           </a>
           <Show when="signed-out">
             <SignInButton mode="modal">
-              <button className="hidden rounded-md px-3 py-1.5 text-sm font-medium text-zinc-300 transition hover:text-zinc-100 sm:inline-flex">
+              <button className="hidden items-center rounded-md border border-white/15 bg-white/5 p-2 text-sm font-medium text-zinc-100 transition hover:border-white/30 hover:bg-white/10 sm:inline-flex">
                 Sign in
               </button>
             </SignInButton>
           </Show>
           <Link
             href="/lift/squat"
-            className="group inline-flex items-center gap-1.5 rounded-md bg-white p-2 text-sm font-medium text-black transition hover:bg-zinc-200"
+            className="group inline-flex h-10 items-center gap-1.5 rounded-md bg-white px-3 text-sm font-medium text-black transition hover:bg-zinc-200"
           >
             Try the demo
             <ArrowRight className="size-3.5 transition group-hover:translate-x-0.5" />
@@ -246,7 +263,8 @@ function SiteNav() {
             <UserButton
               appearance={{
                 elements: {
-                  avatarBox: "size-8",
+                  avatarBox:
+                    "size-10 rounded-md ring-1 ring-white/20 shadow-none",
                 },
               }}
             />
@@ -259,27 +277,45 @@ function SiteNav() {
 }
 
 function Hero() {
+  const { scrollY } = useScroll();
+  const rawBackgroundY = useTransform(scrollY, [0, 1200], [0, -176]);
+  const rawContentY = useTransform(scrollY, [0, 1200], [0, -272]);
+  const backgroundY = useSpring(rawBackgroundY, {
+    stiffness: 90,
+    damping: 24,
+    restDelta: 0.001,
+  });
+  const contentY = useSpring(rawContentY, {
+    stiffness: 110,
+    damping: 28,
+    restDelta: 0.001,
+  });
+
   return (
-    <section className="relative isolate">
-      <div className="pointer-events-none absolute inset-0">
-        <NeuralBackground
-          color="#d4d4d8"
-          trailOpacity={0.1}
-          particleCount={520}
-          speed={0.7}
-        />
-      </div>
-      <div className="mx-auto max-w-5xl px-6 pt-24 pb-28 text-center lg:pt-32 lg:pb-36">
-        <div className="relative z-10 mx-auto flex max-w-4xl flex-col items-center">
+    <section className="relative isolate h-screen overflow-hidden">
+        <motion.div
+          style={{ y: backgroundY }}
+          className="pointer-events-none absolute inset-0 scale-110"
+        >
+          <NeuralBackground
+            color="#d4d4d8"
+            trailOpacity={0.1}
+            particleCount={620}
+            speed={0.62}
+          />
+        </motion.div>
+
+        <motion.div
+          style={{ y: contentY }}
+          className="relative z-10 mx-auto flex min-h-screen max-w-5xl items-center px-6 pt-24 pb-28 text-center lg:pt-32 lg:pb-36"
+        >
+          <div className="mx-auto flex max-w-4xl flex-col items-center">
           <div className="inline-flex w-fit items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-zinc-300">
             <span className="size-1.5 rounded-full bg-white" />
             Built for Backboard × Claude
           </div>
           <h1 className="mt-6 text-balance text-5xl font-semibold leading-[1.02] tracking-tight sm:text-6xl lg:text-7xl">
-            Train harder with{" "}
-            <span className="text-white">
-              fewer bad reps
-            </span>
+            Train harder with <span className="text-white">fewer bad reps</span>
           </h1>
           <p className="mt-6 max-w-2xl text-pretty text-base leading-relaxed text-zinc-400 sm:text-lg">
             Real-time lift feedback for squat, bench, and deadlift. Vela flags
@@ -320,8 +356,8 @@ function Hero() {
               yours, exportable, deletable
             </span>
           </div>
-        </div>
-      </div>
+          </div>
+        </motion.div>
     </section>
   );
 }

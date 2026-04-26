@@ -37,10 +37,50 @@ export default function RootLayout({
       appearance={{
         variables: {
           colorPrimary: "#ffffff",
-          colorBackground: "#09090b", // zinc-950, matches body bg
-          colorText: "#fafafa", // zinc-50
-          colorInputBackground: "#18181b", // zinc-900
+          colorBackground: "#09090b",
+          colorText: "#fafafa",
+          colorNeutral: "#a1a1aa",
+          colorInputBackground: "#09090b",
           colorInputText: "#fafafa",
+          colorDanger: "#f87171",
+          borderRadius: "0.75rem",
+        },
+        elements: {
+          modalBackdrop: "!bg-black/80 backdrop-blur-sm",
+          modalContent: "!mt-1 !shadow-none",
+          cardBox: "!shadow-none",
+          card: "!rounded-2xl !border !border-white/15 !bg-zinc-900/95 !shadow-2xl",
+          headerTitle: "!text-zinc-50",
+          headerSubtitle: "!text-zinc-400",
+          formFieldLabel: "!text-zinc-300",
+          formButtonPrimary:
+            "!bg-white !text-black hover:!bg-zinc-200 !shadow-none",
+          socialButtonsBlockButton:
+            "!border !border-white/20 !bg-white/5 !text-zinc-100 hover:!bg-white/10",
+          socialButtonsBlockButtonText: "!text-zinc-100",
+          formFieldInput:
+            "!border !border-white/15 !bg-zinc-900 !text-zinc-100 placeholder:!text-zinc-500 focus:!border-white/35 focus:!ring-0",
+          dividerLine: "!bg-white/15",
+          dividerText: "!text-zinc-500",
+          footerActionText: "!text-zinc-400",
+          footerActionLink: "!text-zinc-200 hover:!text-white",
+          formFieldAction: "!text-zinc-300 hover:!text-white",
+          formFieldErrorText: "!text-red-400",
+          alert: "!border !border-red-400/30 !bg-red-500/10",
+          alertText: "!text-red-300",
+          identityPreviewText: "!text-zinc-200",
+          identityPreviewEditButton: "!text-zinc-300 hover:!text-white",
+          modalCloseButton:
+            "!border !border-white/15 !bg-white/5 !text-zinc-200 hover:!bg-white/10 hover:!text-white",
+          footer: "!bg-transparent",
+          footerPages: "!hidden",
+          userButtonPopoverCard:
+            "!mt-1 !rounded-2xl !border !border-white/15 !bg-zinc-900/95 !shadow-2xl",
+          userButtonPopoverMain: "!bg-transparent",
+          userButtonPopoverActionButton:
+            "!rounded-lg !text-zinc-200 hover:!bg-white/10 hover:!text-white",
+          userButtonPopoverActionButtonText: "!text-zinc-200",
+          userButtonPopoverFooter: "!hidden",
         },
       }}
     >

@@ -23,7 +23,7 @@ export default async function LiftPage({
         <AppHeader />
         <main className="mx-auto max-w-lg p-8">
           <p>Unknown lift. Use squat, bench, or deadlift.</p>
-          <Link href="/" className="mt-4 inline-block text-sky-400 underline">
+          <Link href="/" className="mt-4 inline-block text-zinc-200 underline">
             Home
           </Link>
         </main>
@@ -36,7 +36,7 @@ export default async function LiftPage({
       <AppHeader />
       <main className="mx-auto max-w-5xl space-y-6 px-6 py-10">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-400/90">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-300">
             Lift
           </p>
           <h1 className="mt-1 text-3xl font-semibold capitalize tracking-tight">

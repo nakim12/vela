@@ -24,20 +24,20 @@ import { AppHeader } from "@/components/AppHeader";
 import { ApiError, getTrends, listSessions, useApi } from "@/lib/api-client";
 
 const RULE_COLORS: Record<string, string> = {
-  KNEE_CAVE: "#38bdf8",
-  FORWARD_DUMP: "#f97316",
-  BUTT_WINK: "#a78bfa",
-  HEEL_LIFT: "#34d399",
-  DEPTH_ASYMMETRY: "#facc15",
-  ROUND_BACK: "#f472b6",
-  HIPS_RISE_FIRST: "#fb7185",
-  BAR_DRIFT: "#60a5fa",
+  KNEE_CAVE: "#f4f4f5",
+  FORWARD_DUMP: "#d4d4d8",
+  BUTT_WINK: "#a1a1aa",
+  HEEL_LIFT: "#71717a",
+  DEPTH_ASYMMETRY: "#e4e4e7",
+  ROUND_BACK: "#b4b4b8",
+  HIPS_RISE_FIRST: "#8a8a8f",
+  BAR_DRIFT: "#c4c4c8",
 };
 
 function colorFor(ruleId: string, idx: number): string {
   if (RULE_COLORS[ruleId]) return RULE_COLORS[ruleId];
   // Deterministic fallback for unknown rule_ids.
-  const palette = ["#38bdf8", "#a78bfa", "#34d399", "#facc15", "#f472b6"];
+  const palette = ["#f4f4f5", "#d4d4d8", "#a1a1aa", "#71717a", "#e4e4e7"];
   return palette[idx % palette.length];
 }
 
@@ -110,12 +110,12 @@ export default function SessionsPage() {
       <main className="mx-auto max-w-6xl px-6 py-10">
         <div className="mb-8 flex flex-wrap items-end justify-between gap-3">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-400/90">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-300">
               History
             </p>
             <h1 className="mt-1 text-3xl font-semibold tracking-tight">
               Sessions for{" "}
-              <span className="text-sky-300">{displayName}</span>
+              <span className="text-zinc-100">{displayName}</span>
             </h1>
             <p className="mt-2 text-sm text-zinc-500">
               Newest first. Click any row to see the agent&rsquo;s post-set
@@ -124,7 +124,7 @@ export default function SessionsPage() {
           </div>
           <Link
             href="/lift/squat"
-            className="inline-flex items-center gap-1.5 rounded-md bg-sky-400 px-4 py-2 text-sm font-medium text-zinc-950 hover:bg-sky-300"
+            className="inline-flex items-center gap-1.5 rounded-md bg-white px-4 py-2 text-sm font-medium text-zinc-950 hover:bg-zinc-200"
           >
             New live session
             <ArrowRight className="size-3.5" />
@@ -224,7 +224,7 @@ export default function SessionsPage() {
                     <li key={s.session_id}>
                       <Link
                         href={`/sessions/${s.session_id}`}
-                        className="group flex items-center justify-between rounded-lg border border-white/5 bg-zinc-900/40 px-4 py-3 transition hover:border-sky-400/30 hover:bg-sky-400/[0.04]"
+                        className="group flex items-center justify-between rounded-lg border border-white/5 bg-zinc-900/40 px-4 py-3 transition hover:border-white/25 hover:bg-white/[0.06]"
                       >
                         <div>
                           <div className="flex items-center gap-2 text-sm font-medium text-zinc-100">
@@ -243,7 +243,7 @@ export default function SessionsPage() {
                             )}
                           </div>
                         </div>
-                        <ArrowRight className="size-4 text-zinc-500 transition group-hover:translate-x-0.5 group-hover:text-sky-300" />
+                        <ArrowRight className="size-4 text-zinc-500 transition group-hover:translate-x-0.5 group-hover:text-zinc-200" />
                       </Link>
                     </li>
                   ))}

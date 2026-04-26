@@ -71,7 +71,7 @@ export default function CoachPage() {
       <AppHeader />
       <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-6 py-8">
         <div className="mb-6">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-400/90">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-300">
             Coach
           </p>
           <h1 className="mt-1 text-2xl font-semibold tracking-tight">
@@ -101,7 +101,7 @@ export default function CoachPage() {
                     key={s}
                     type="button"
                     onClick={() => send(s)}
-                    className="rounded-md border border-white/10 bg-white/[0.03] px-3 py-2 text-left text-sm text-zinc-300 transition hover:border-sky-400/30 hover:bg-sky-400/[0.04] hover:text-sky-100"
+                    className="rounded-md border border-white/10 bg-white/[0.03] px-3 py-2 text-left text-sm text-zinc-300 transition hover:border-white/30 hover:bg-white/[0.08] hover:text-zinc-100"
                   >
                     {s}
                   </button>
@@ -116,7 +116,7 @@ export default function CoachPage() {
 
           {pending && (
             <div className="flex items-center gap-2 text-sm text-zinc-500">
-              <Loader2 className="size-3.5 animate-spin text-sky-400/80" />
+              <Loader2 className="size-3.5 animate-spin text-zinc-300" />
               Coach is thinking…
             </div>
           )}
@@ -143,12 +143,12 @@ export default function CoachPage() {
             onChange={(e) => setDraft(e.target.value)}
             placeholder="Ask anything about your training…"
             disabled={pending}
-            className="flex-1 rounded-md border border-white/10 bg-zinc-900/80 px-3 py-2.5 text-sm text-zinc-100 outline-none focus:border-sky-400/40 disabled:opacity-50"
+            className="flex-1 rounded-md border border-white/10 bg-zinc-900/80 px-3 py-2.5 text-sm text-zinc-100 outline-none focus:border-white/35 disabled:opacity-50"
           />
           <button
             type="submit"
             disabled={pending || !draft.trim()}
-            className="inline-flex items-center gap-1.5 rounded-md bg-sky-400 px-4 py-2.5 text-sm font-medium text-zinc-950 transition hover:bg-sky-300 disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 rounded-md bg-white px-4 py-2.5 text-sm font-medium text-zinc-950 transition hover:bg-zinc-200 disabled:opacity-50"
           >
             <Send className="size-4" />
             Send
@@ -167,14 +167,14 @@ function Bubble({ turn }: { turn: Turn }) {
         className={
           "max-w-[85%] rounded-xl px-4 py-3 text-sm leading-relaxed " +
           (isUser
-            ? "border border-sky-400/30 bg-sky-400/[0.08] text-sky-50"
+            ? "border border-white/30 bg-white/[0.08] text-zinc-50"
             : "border border-white/10 bg-zinc-900/60 text-zinc-100")
         }
       >
         {isUser ? (
           turn.content
         ) : (
-          <div className="prose prose-invert prose-sm max-w-none prose-p:my-2 prose-headings:text-zinc-100 prose-strong:text-sky-200 prose-code:text-sky-300 prose-a:text-sky-400">
+          <div className="prose prose-invert prose-sm max-w-none prose-p:my-2 prose-headings:text-zinc-100 prose-strong:text-zinc-100 prose-code:text-zinc-200 prose-a:text-zinc-300">
             <ReactMarkdown>{turn.content}</ReactMarkdown>
           </div>
         )}

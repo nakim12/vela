@@ -158,7 +158,7 @@ export default function SessionDetailPage({
           <>
             <header className="mb-8 flex flex-wrap items-end justify-between gap-3">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-400/90">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-300">
                   Session report
                 </p>
                 <h1 className="mt-1 text-3xl font-semibold tracking-tight capitalize">
@@ -235,7 +235,7 @@ export default function SessionDetailPage({
                         type="button"
                         disabled={loadingSummary || report.event_count === 0}
                         onClick={() => generateSummary(false)}
-                        className="inline-flex items-center gap-1.5 rounded-md border border-sky-400/30 bg-sky-400/10 px-2.5 py-1 text-xs font-medium text-sky-200 hover:bg-sky-400/20 disabled:opacity-40"
+                        className="inline-flex items-center gap-1.5 rounded-md border border-white/20 bg-white/10 px-2.5 py-1 text-xs font-medium text-zinc-100 hover:bg-white/15 disabled:opacity-40"
                       >
                         <Sparkles className="size-3" />
                         {summary ? "Regenerate (cached)" : "Generate"}
@@ -257,7 +257,7 @@ export default function SessionDetailPage({
                 >
                   {loadingSummary && (
                     <div className="flex items-center gap-2 text-sm text-zinc-500">
-                      <Loader2 className="size-3.5 animate-spin text-sky-400/80" />
+                      <Loader2 className="size-3.5 animate-spin text-zinc-300" />
                       Agent is reasoning… (~25s on first run)
                     </div>
                   )}
@@ -274,7 +274,7 @@ export default function SessionDetailPage({
                     </p>
                   )}
                   {summary && !loadingSummary && (
-                    <div className="prose prose-invert prose-sm max-w-none prose-headings:text-zinc-100 prose-strong:text-sky-200 prose-code:text-sky-300 prose-a:text-sky-400 prose-li:my-1">
+                    <div className="prose prose-invert prose-sm max-w-none prose-headings:text-zinc-100 prose-strong:text-zinc-100 prose-code:text-zinc-200 prose-a:text-zinc-300 prose-li:my-1">
                       <ReactMarkdown>{summary.summary_md}</ReactMarkdown>
                     </div>
                   )}
@@ -323,7 +323,7 @@ export default function SessionDetailPage({
                         >
                           <div className="min-w-0 flex-1">
                             {m.category && (
-                              <span className="inline-block rounded border border-sky-400/20 bg-sky-400/10 px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-widest text-sky-300">
+                              <span className="inline-block rounded border border-white/20 bg-white/10 px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-widest text-zinc-200">
                                 {m.category}
                               </span>
                             )}
