@@ -1,6 +1,6 @@
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 from db import models  # noqa: F401 — register ORM classes with Base
@@ -39,6 +39,26 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# Private Network Access opt-in.
+#
+# Chrome (and other Chromium browsers) treat `localhost` / 127.0.0.1
+# as a *private* address space and block fetches from public-secure
+# origins (e.g. `https://romus.vercel.app`) into that space unless
+# the server explicitly opts in. The mechanism: the browser sends a
+# preflight `OPTIONS` request with
+# `Access-Control-Request-Private-Network: true`; the server must
+# echo back `Access-Control-Allow-Private-Network: true`.
+#
+# CORSMiddleware doesn't ship this header, so we add it ourselves on
+# every preflight. Spec: https://wicg.github.io/private-network-access/
+@app.middleware("http")
+async def allow_private_network(request: Request, call_next):
+    response = await call_next(request)
+    if request.method == "OPTIONS":
+        response.headers["Access-Control-Allow-Private-Network"] = "true"
+    return response
 
 app.include_router(health_router, prefix="/api")
 app.include_router(sessions_router, prefix="/api")
