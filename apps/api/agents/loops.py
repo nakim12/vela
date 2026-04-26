@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import json
+import logging
+from datetime import date
 from typing import Iterable
 
 from backboard import BackboardClient
@@ -13,6 +15,12 @@ from agents.runtime import (
     run_until_done,
 )
 from models.risk_event import RiskEvent
+
+log = logging.getLogger(__name__)
+
+# Severity ordering for "peak severity" rollups in the deterministic
+# session-summary memory. Tracks ``RiskSeverity`` in models/risk_event.py.
+_SEVERITY_RANK = {"info": 0, "warn": 1, "high": 2}
 
 
 async def post_set_loop(
@@ -60,12 +68,85 @@ async def post_set_loop(
         "(squat 135x5x3, bench 95x5x3, deadlift 185x5x3).\n\n"
         f"```json\n{json.dumps(payload, indent=2)}\n```"
     )
-    return await run_until_done(
+    summary = await run_until_done(
         client,
         user_id=user_id,
         assistant_id=assistant_id,
         thread_id=thread_id,
         content=prompt,
+    )
+
+    # Deterministic session-tagged memory write. The LLM is invited (via
+    # step 3 in the prompt) to call log_observation when it spots a
+    # personalized pattern, but that call is optional and frequently
+    # skipped — leaving the "What the agent learned" panel empty even
+    # for sets full of risk events. Writing a factual rollup of the
+    # telemetry here guarantees every session has at least one entry,
+    # which is both honest UX and useful context the agent can recall
+    # later via query_user_kg.
+    #
+    # Wrapped in a broad try/except: if the memory write fails (Backboard
+    # transient, network blip), we still want the report to surface.
+    try:
+        rollup = _summarize_events_for_memory(lift=lift, events=events_list)
+        await client.add_memory(
+            assistant_id,
+            content=f"[session_telemetry] {rollup}",
+            metadata={
+                "category": "session_telemetry",
+                "session_id": session_id,
+            },
+        )
+    except Exception:
+        log.exception(
+            "deterministic session_telemetry memory write failed "
+            "(session=%s assistant=%s)",
+            session_id, assistant_id,
+        )
+
+    return summary
+
+
+def _summarize_events_for_memory(
+    *, lift: str, events: list[RiskEvent]
+) -> str:
+    """One-line factual rollup of a session's risk events.
+
+    Designed to be both human-readable in the memory panel and useful
+    context for the agent on a later session via ``query_user_kg``.
+    Format examples::
+
+        Squat session 2026-04-26: clean — 0 risk events.
+        Squat session 2026-04-26: 4 risk events — KNEE_CAVE×3 (left)
+        peak warn, HEEL_LIFT×1 (right) peak info. Events through rep 5.
+    """
+    today = date.today().isoformat()
+    lift_label = lift.title()
+    if not events:
+        return f"{lift_label} session {today}: clean — 0 risk events."
+
+    by_rule: dict[str, dict] = {}
+    for e in events:
+        g = by_rule.setdefault(
+            e.rule_id, {"count": 0, "peak": "info", "sides": set()}
+        )
+        g["count"] += 1
+        if _SEVERITY_RANK.get(e.severity, 0) > _SEVERITY_RANK[g["peak"]]:
+            g["peak"] = e.severity
+        if e.side and e.side != "both":
+            g["sides"].add(e.side)
+
+    parts: list[str] = []
+    for rule_id, g in sorted(by_rule.items()):
+        sides = "/".join(sorted(g["sides"])) if g["sides"] else ""
+        side_str = f" ({sides})" if sides else ""
+        parts.append(f"{rule_id}×{g['count']}{side_str} peak {g['peak']}")
+
+    rep_max = max(e.rep_index for e in events)
+    return (
+        f"{lift_label} session {today}: {len(events)} risk events — "
+        + ", ".join(parts)
+        + f". Events through rep {rep_max}."
     )
 
 
