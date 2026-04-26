@@ -6,18 +6,35 @@ import { motion } from "framer-motion";
 function FloatingPaths({ position }: { position: number }) {
   const paths = useMemo(
     () =>
-      Array.from({ length: 36 }, (_, i) => ({
-        id: i,
-        d: `M-${380 - i * 5 * position} -${189 + i * 6}C-${
-          380 - i * 5 * position
-        } -${189 + i * 6} -${312 - i * 5 * position} ${216 - i * 6} ${
-          152 - i * 5 * position
-        } ${343 - i * 6}C${616 - i * 5 * position} ${470 - i * 6} ${
-          684 - i * 5 * position
-        } ${875 - i * 6} ${684 - i * 5 * position} ${875 - i * 6}`,
-        width: 0.28 + i * 0.018,
-        duration: 12 + i * 0.2,
-      })),
+      Array.from({ length: 30 }, (_, i) => {
+        const offsetX = i * 5 * position;
+        const offsetY = i * 6;
+
+        const startX = -(380 - offsetX);
+        const startY = -(189 + offsetY);
+        const midX = 152 - offsetX;
+        const midY = 343 - offsetY;
+        const endX = 684 - offsetX;
+        const endY = 875 - offsetY;
+
+        // Preserve the original composition, but enforce smooth tangent
+        // continuity through the midpoint to remove visible kinks.
+        const c1x = startX;
+        const c1y = startY;
+        const c2x = -(312 - offsetX);
+        const c2y = 216 - offsetY;
+        const c3x = 2 * midX - c2x;
+        const c3y = 2 * midY - c2y;
+        const c4x = endX;
+        const c4y = endY;
+
+        return {
+          id: i,
+          d: `M${startX} ${startY} C${c1x} ${c1y}, ${c2x} ${c2y}, ${midX} ${midY} C${c3x} ${c3y}, ${c4x} ${c4y}, ${endX} ${endY}`,
+          width: 0.2 + i * 0.014,
+          duration: 10 + i * 0.18,
+        };
+      }),
     [position],
   );
 
@@ -36,11 +53,13 @@ function FloatingPaths({ position }: { position: number }) {
             d={path.d}
             stroke="currentColor"
             strokeWidth={path.width}
-            strokeOpacity={0.18 + path.id * 0.012}
-            initial={{ pathLength: 0.2, opacity: 0.34 }}
+            strokeOpacity={0.12 + path.id * 0.01}
+            strokeLinejoin="round"
+            strokeLinecap="round"
+            initial={{ pathLength: 0.2, opacity: 0.24 }}
             animate={{
               pathLength: [0.2, 0.9, 0.2],
-              opacity: [0.3, 0.58, 0.3],
+              opacity: [0.2, 0.44, 0.2],
             }}
             transition={{
               duration: path.duration,
@@ -59,11 +78,11 @@ export function BackgroundPaths() {
   return (
     <div
       aria-hidden
-      className="pointer-events-none absolute inset-0 overflow-hidden opacity-52"
+      className="pointer-events-none absolute inset-0 overflow-hidden opacity-44"
     >
       <FloatingPaths position={1} />
       <FloatingPaths position={-1} />
-      <div className="absolute inset-0 bg-gradient-to-b from-zinc-950/12 via-zinc-950/32 to-zinc-950/82" />
+      <div className="absolute inset-0 bg-gradient-to-b from-zinc-950/18 via-zinc-950/40 to-zinc-950/86" />
     </div>
   );
 }

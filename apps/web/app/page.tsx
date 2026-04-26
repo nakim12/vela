@@ -26,47 +26,45 @@ function GithubMark({ className }: { className?: string }) {
   );
 }
 
-import { BackgroundPaths } from "@/components/ui/background-paths";
-import { PoseFigure } from "@/components/landing/pose-figure";
+import NeuralBackground from "@/components/ui/flow-field-background";
 
 const navLinks = [
-  { href: "#how", label: "How it works" },
-  { href: "#feedback", label: "Feedback" },
-  { href: "#personalization", label: "Personalization" },
+  { href: "#fix-one-rep", label: "Fix One Rep" },
+  { href: "#workflow", label: "Workflow" },
   { href: "#lifts", label: "The Big 3" },
-  { href: "#architecture", label: "Architecture" },
+  { href: "#personalization", label: "Personalization" },
 ] as const;
 
 const stats = [
-  { value: "30 fps", label: "in-browser pose tracking" },
-  { value: "33", label: "tracked keypoints / frame" },
-  { value: "13", label: "biomechanics rules across the Big 3" },
-  { value: "1", label: "knowledge graph per lifter" },
+  { value: "<200 ms", label: "risk cue latency from frame to cue" },
+  { value: "30 fps", label: "on-device pose tracking in-browser" },
+  { value: "13", label: "form faults across squat, bench, deadlift" },
+  { value: "1", label: "persistent coach memory per lifter" },
 ] as const;
 
 const steps = [
   {
     n: "01",
     title: "Capture",
-    body: "Live camera or uploaded video runs through MediaPipe Pose Landmarker — entirely in your browser.",
+    body: "Start a live set or upload a clip. Pose tracking runs in-browser with no frame streaming to a server.",
     icon: Camera,
   },
   {
     n: "02",
-    title: "Detect",
-    body: "A deterministic rules engine evaluates joint angles, bar path, and asymmetry on the same frame you see.",
+    title: "Analyze",
+    body: "Rules engine scores knee cave, bar drift, asymmetry, and trunk position on the same frame you see.",
     icon: Activity,
   },
   {
     n: "03",
-    title: "Personalize",
-    body: "Risk events stream to a Claude agent backed by Backboard — your mobility, injuries, and history are loaded in context.",
+    title: "Cue",
+    body: "High-risk faults trigger short in-set coaching cues immediately, before your next rep compounds the mistake.",
     icon: Brain,
   },
   {
     n: "04",
-    title: "Coach",
-    body: "Live overlay flashes, a 4-word voice cue fires, and a full debrief renders the moment you re-rack.",
+    title: "Improve",
+    body: "After the set, you get a debrief with next-set priorities and trendlines against your recent sessions.",
     icon: Mic,
   },
 ] as const;
@@ -137,15 +135,15 @@ const knownLifterCues = [
 
 export default function Home() {
   return (
-    <div className="relative min-h-screen overflow-hidden bg-zinc-950 text-zinc-100 selection:bg-sky-300/20 selection:text-sky-50">
+    <div className="relative min-h-screen overflow-hidden bg-black text-zinc-100 selection:bg-white/20 selection:text-white">
       <SiteNav />
       <Hero />
       <StatsStrip />
-      <Problem />
+      <FixOneRep />
       <HowItWorks />
+      <BigThree />
       <FeedbackChannels />
       <Personalization />
-      <BigThree />
       <Architecture />
       <FinalCta />
       <SiteFooter />
@@ -158,8 +156,8 @@ function SiteNav() {
     <header className="sticky top-0 z-30 border-b border-white/5 bg-zinc-950/70 backdrop-blur-xl">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3.5">
         <Link href="/" className="group inline-flex items-center gap-2.5">
-          <span className="grid size-7 place-items-center rounded-md border border-sky-400/30 bg-sky-400/10 text-sky-300">
-            <span className="size-1.5 rounded-full bg-sky-400 shadow-[0_0_10px_rgba(56,189,248,0.5)]" />
+          <span className="grid size-7 place-items-center rounded-md border border-white/30 bg-white/10 text-white">
+            <span className="size-1.5 rounded-full bg-white" />
           </span>
           <span className="text-sm font-semibold tracking-tight">
             Vela
@@ -196,7 +194,7 @@ function SiteNav() {
           </Show>
           <Link
             href="/lift/squat"
-            className="group inline-flex items-center gap-1.5 rounded-md bg-sky-400 px-3 py-1.5 text-sm font-medium text-zinc-950 shadow-[0_0_16px_rgba(56,189,248,0.2)] transition hover:bg-sky-300"
+            className="group inline-flex items-center gap-1.5 rounded-md bg-white px-3 py-1.5 text-sm font-medium text-black transition hover:bg-zinc-200"
           >
             Try the demo
             <ArrowRight className="size-3.5 transition group-hover:translate-x-0.5" />
@@ -219,29 +217,36 @@ function SiteNav() {
 function Hero() {
   return (
     <section className="relative isolate">
-      <BackgroundPaths />
-      <div className="mx-auto grid max-w-6xl grid-cols-1 gap-12 px-6 pt-20 pb-24 lg:grid-cols-[1.1fr_1fr] lg:gap-16 lg:pt-28 lg:pb-32">
-        <div className="relative z-10 flex flex-col justify-center">
+      <div className="pointer-events-none absolute inset-0">
+        <NeuralBackground
+          color="#d4d4d8"
+          trailOpacity={0.1}
+          particleCount={520}
+          speed={0.7}
+        />
+      </div>
+      <div className="mx-auto max-w-5xl px-6 pt-24 pb-28 text-center lg:pt-32 lg:pb-36">
+        <div className="relative z-10 mx-auto flex max-w-4xl flex-col items-center">
           <div className="inline-flex w-fit items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-zinc-300">
-            <span className="size-1.5 rounded-full bg-sky-400 shadow-[0_0_8px_rgba(56,189,248,0.65)]" />
+            <span className="size-1.5 rounded-full bg-white" />
             Built for Backboard × Claude
           </div>
-          <h1 className="mt-5 text-balance text-4xl font-semibold leading-[1.05] tracking-tight sm:text-5xl lg:text-6xl">
-            Form coaching that{" "}
-            <span className="bg-gradient-to-br from-sky-100 via-sky-300 to-blue-400 bg-clip-text text-transparent">
-              knows your body.
+          <h1 className="mt-6 text-balance text-5xl font-semibold leading-[1.02] tracking-tight sm:text-6xl lg:text-7xl">
+            Train harder with{" "}
+            <span className="text-white">
+              fewer bad reps
             </span>
           </h1>
-          <p className="mt-6 max-w-xl text-pretty text-base leading-relaxed text-zinc-400 sm:text-lg">
-            MediaPipe runs live in your browser. A deterministic rules engine
-            catches knee cave in 200 ms. A Claude + Backboard coach remembers
-            your femur length, your last SI flare-up, and which cues you actually
-            respond to — and personalizes every word.
+          <p className="mt-6 max-w-2xl text-pretty text-base leading-relaxed text-zinc-400 sm:text-lg">
+            Real-time lift feedback for squat, bench, and deadlift. Vela flags
+            risky mechanics mid-set and gives you personalized cues you can use
+            on the very next rep.
           </p>
-          <div className="mt-8 flex flex-wrap items-center gap-3">
+
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             <Link
               href="/lift/squat"
-              className="group inline-flex items-center gap-2 rounded-lg bg-sky-400 px-5 py-2.5 text-sm font-semibold text-zinc-950 shadow-[0_0_18px_rgba(56,189,248,0.2)] transition hover:bg-sky-300"
+              className="group inline-flex items-center gap-2 rounded-lg bg-white px-5 py-2.5 text-sm font-semibold text-black transition hover:bg-zinc-200"
             >
               Try the squat demo
               <ArrowRight className="size-4 transition group-hover:translate-x-0.5" />
@@ -256,71 +261,20 @@ function Hero() {
               href="/onboarding"
               className="inline-flex items-center gap-1.5 px-2 py-2.5 text-sm font-medium text-zinc-400 transition hover:text-zinc-100"
             >
-              Seed your knowledge graph
+              Set up your lifter profile
               <ArrowUpRight className="size-3.5" />
             </Link>
           </div>
 
-          <div className="mt-10 flex flex-wrap items-center gap-x-6 gap-y-3 text-xs text-zinc-500">
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-3 text-xs text-zinc-500">
             <span className="inline-flex items-center gap-2">
-              <ShieldCheck className="size-3.5 text-sky-400/80" /> Pose runs
+              <ShieldCheck className="size-3.5 text-zinc-300" /> Pose runs
               entirely on-device
             </span>
             <span className="inline-flex items-center gap-2">
-              <ShieldCheck className="size-3.5 text-sky-400/80" /> Memory is
+              <ShieldCheck className="size-3.5 text-zinc-300" /> Memory is
               yours, exportable, deletable
             </span>
-          </div>
-        </div>
-
-        <div className="relative">
-          <div className="relative mx-auto aspect-[4/5] w-full max-w-md overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-zinc-900 to-zinc-950 shadow-[0_24px_90px_-30px_rgba(56,189,248,0.22)]">
-            <div className="absolute inset-x-0 top-0 z-10 flex items-center justify-between border-b border-white/5 bg-zinc-950/60 px-4 py-2.5 backdrop-blur">
-              <div className="flex items-center gap-2 text-xs text-zinc-400">
-                <span className="size-2 rounded-full bg-sky-400 shadow-[0_0_8px_rgba(56,189,248,0.7)]" />
-                live · squat · rep 4
-              </div>
-              <div className="font-mono text-[10px] tracking-widest text-zinc-500">
-                30.1 FPS
-              </div>
-            </div>
-            <PoseFigure />
-            <div className="absolute inset-x-0 bottom-0 z-10 flex items-center justify-between border-t border-white/5 bg-zinc-950/70 px-4 py-3 backdrop-blur">
-              <div className="flex items-center gap-2 text-xs">
-                <span className="grid size-6 place-items-center rounded-md border border-red-400/30 bg-red-400/10 text-red-300">
-                  <Volume2 className="size-3" />
-                </span>
-                <span className="font-medium text-zinc-200">
-                  &ldquo;Drive your knees out.&rdquo;
-                </span>
-              </div>
-              <div className="hidden items-center gap-2 text-[10px] text-zinc-500 sm:flex">
-                <span className="rounded border border-white/10 px-1.5 py-0.5 font-mono">
-                  KNEE_CAVE
-                </span>
-                <span className="rounded border border-red-400/30 bg-red-400/10 px-1.5 py-0.5 font-mono text-red-300">
-                  high
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div className="absolute -right-4 top-12 hidden rounded-xl border border-white/10 bg-zinc-900/90 p-3 shadow-xl backdrop-blur xl:block">
-            <p className="text-[11px] font-medium uppercase tracking-wider text-zinc-500">
-              from your KG
-            </p>
-            <p className="mt-1 max-w-[180px] text-xs text-zinc-300">
-              Right ankle DF limited 28°. Cued from internal not external.
-            </p>
-          </div>
-          <div className="absolute -left-6 bottom-16 hidden rounded-xl border border-white/10 bg-zinc-900/90 p-3 shadow-xl backdrop-blur xl:block">
-            <p className="text-[11px] font-medium uppercase tracking-wider text-zinc-500">
-              this session
-            </p>
-            <p className="mt-1 text-xs text-zinc-300">
-              Knee cave events <span className="text-sky-400">↓ 40%</span> vs
-              last week
-            </p>
           </div>
         </div>
       </div>
@@ -345,28 +299,36 @@ function StatsStrip() {
   );
 }
 
-function Problem() {
+function FixOneRep() {
   return (
-    <section className="relative px-6 py-24 sm:py-28">
+    <section id="fix-one-rep" className="relative px-6 py-24 sm:py-28">
       <div className="mx-auto max-w-4xl text-center">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-400/90">
-          The problem
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-300">
+          Fix one rep now
         </p>
         <h2 className="mt-4 text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
-          &ldquo;Good form&rdquo; is not universal.
+          Don&apos;t rebuild your whole program. Fix the exact rep that breaks down.
         </h2>
         <p className="mt-5 text-pretty text-base leading-relaxed text-zinc-400 sm:text-lg">
-          A 6&prime;5&Prime; lifter with long femurs <em>should</em> have more forward
-          lean than a 5&prime;6&Prime; lifter. Telling them both to &ldquo;stay more
-          upright&rdquo; is wrong half the time. Today&rsquo;s form-check apps either
-          apply rigid heuristics that flag healthy lifters and miss real risk, or
-          throw raw video at an LLM with no biomechanical grounding and
-          hallucinate cues.
+          Iris-style workflow, but built for lifting: isolate the moment your
+          mechanics fail, diagnose it in context, and carry the correction into
+          your next set without guesswork.
         </p>
-        <p className="mt-6 text-base font-medium text-zinc-200">
-          Vela&rsquo;s bet: rules where rules are right. LLM where LLMs are right.
-          Memory where memory matters.
-        </p>
+        <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+          <Link
+            href="/lift/squat"
+            className="group inline-flex items-center gap-2 rounded-lg bg-white px-5 py-2.5 text-sm font-semibold text-black transition hover:bg-zinc-200"
+          >
+            Fix a squat rep live
+            <ArrowRight className="size-4 transition group-hover:translate-x-0.5" />
+          </Link>
+          <Link
+            href="/upload"
+            className="inline-flex items-center gap-2 rounded-lg border border-white/15 bg-white/5 px-5 py-2.5 text-sm font-semibold text-zinc-100 transition hover:border-white/30 hover:bg-white/10"
+          >
+            Upload one failed set
+          </Link>
+        </div>
       </div>
     </section>
   );
@@ -374,12 +336,12 @@ function Problem() {
 
 function HowItWorks() {
   return (
-    <section id="how" className="relative px-6 py-24 sm:py-28">
+    <section id="workflow" className="relative px-6 py-24 sm:py-28">
       <div className="mx-auto max-w-6xl">
         <SectionHeader
-          eyebrow="How it works"
-          title="From pixel to personalized cue."
-          subtitle="Four stages, two of them on-device, two of them in your assistant."
+          eyebrow="Workflow"
+          title="Capture. Analyze. Cue. Improve."
+          subtitle="One clear loop for every set: read the rep, flag the fault, deliver the cue, track what changed next session."
         />
         <div className="mt-14 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
           {steps.map(({ n, title, body, icon: Icon }) => (
@@ -389,7 +351,7 @@ function HowItWorks() {
             >
               <div className="flex items-center justify-between">
                 <span className="font-mono text-xs text-zinc-500">{n}</span>
-                <span className="grid size-8 place-items-center rounded-md border border-white/10 bg-white/5 text-sky-300">
+                <span className="grid size-8 place-items-center rounded-md border border-white/10 bg-white/5 text-white">
                   <Icon className="size-4" />
                 </span>
               </div>
@@ -399,7 +361,7 @@ function HowItWorks() {
               <p className="mt-2 text-sm leading-relaxed text-zinc-400">
                 {body}
               </p>
-              <div className="pointer-events-none absolute inset-x-0 -bottom-px h-px bg-gradient-to-r from-transparent via-sky-400/40 to-transparent opacity-0 transition group-hover:opacity-100" />
+              <div className="pointer-events-none absolute inset-x-0 -bottom-px h-px bg-gradient-to-r from-transparent via-white/40 to-transparent opacity-0 transition group-hover:opacity-100" />
             </div>
           ))}
         </div>
@@ -427,7 +389,7 @@ function FeedbackChannels() {
               className="relative flex flex-col rounded-xl border border-white/10 bg-zinc-900/40 p-6 backdrop-blur"
             >
               <div className="flex items-center justify-between">
-                <span className="grid size-9 place-items-center rounded-md border border-sky-400/20 bg-sky-400/10 text-sky-300">
+                <span className="grid size-9 place-items-center rounded-md border border-white/20 bg-white/10 text-white">
                   <Icon className="size-4" />
                 </span>
                 <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-zinc-400">
@@ -509,7 +471,7 @@ function CueCard({
       className={
         "relative overflow-hidden rounded-2xl border p-6 " +
         (accent
-          ? "border-sky-400/30 bg-gradient-to-br from-sky-400/[0.06] to-blue-500/[0.05]"
+          ? "border-white/30 bg-gradient-to-br from-white/[0.06] to-zinc-500/[0.05]"
           : "border-white/10 bg-white/[0.02]")
       }
     >
@@ -518,7 +480,7 @@ function CueCard({
           <p
             className={
               "text-sm font-semibold " +
-              (accent ? "text-sky-300" : "text-zinc-200")
+              (accent ? "text-white" : "text-zinc-200")
             }
           >
             {label}
@@ -529,7 +491,7 @@ function CueCard({
           className={
             "rounded-full px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider " +
             (accent
-              ? "border border-sky-400/40 bg-sky-400/10 text-sky-200"
+              ? "border border-white/40 bg-white/10 text-white"
               : "border border-white/10 bg-white/5 text-zinc-400")
           }
         >
@@ -546,7 +508,7 @@ function CueCard({
               className={
                 "mt-0.5 grid size-5 shrink-0 place-items-center rounded-md " +
                 (accent
-                  ? "bg-sky-400/20 text-sky-300"
+                  ? "bg-white/20 text-white"
                   : "bg-white/10 text-zinc-400")
               }
             >
@@ -563,7 +525,7 @@ function CueCard({
 function KGFact({ category, fact }: { category: string; fact: string }) {
   return (
     <div className="rounded-xl border border-white/10 bg-zinc-950/50 p-4">
-      <p className="font-mono text-[10px] uppercase tracking-widest text-sky-400/80">
+      <p className="font-mono text-[10px] uppercase tracking-widest text-zinc-300">
         {category}
       </p>
       <p className="mt-2 text-sm leading-relaxed text-zinc-300">{fact}</p>
@@ -587,7 +549,7 @@ function BigThree() {
           {lifts.map((lift) => (
             <div
               key={lift.name}
-              className="group relative flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-b from-zinc-900/60 to-zinc-950/60 p-6 transition hover:border-sky-400/30"
+              className="group relative flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-b from-zinc-900/60 to-zinc-950/60 p-6 transition hover:border-white/30"
             >
               <div className="flex items-center justify-between">
                 <h3 className="text-xl font-semibold tracking-tight text-zinc-50">
@@ -600,14 +562,14 @@ function BigThree() {
               <ul className="mt-5 space-y-2 text-sm text-zinc-400">
                 {lift.rules.map((r) => (
                   <li key={r} className="flex items-start gap-2">
-                    <span className="mt-1.5 size-1 shrink-0 rounded-full bg-sky-400/70" />
+                    <span className="mt-1.5 size-1 shrink-0 rounded-full bg-zinc-300" />
                     {r}
                   </li>
                 ))}
               </ul>
               <Link
                 href={`/lift/${lift.name.toLowerCase()}`}
-                className="mt-6 inline-flex w-fit items-center gap-1.5 text-sm font-medium text-sky-300 transition hover:text-sky-200"
+                className="mt-6 inline-flex w-fit items-center gap-1.5 text-sm font-medium text-zinc-200 transition hover:text-white"
               >
                 Try {lift.name.toLowerCase()} live
                 <ArrowRight className="size-3.5 transition group-hover:translate-x-0.5" />
@@ -675,14 +637,14 @@ function ArchPanel({
       className={
         "relative overflow-hidden rounded-2xl border p-6 sm:p-8 " +
         (accent
-          ? "border-sky-400/25 bg-gradient-to-br from-sky-400/[0.05] to-zinc-950"
+          ? "border-white/25 bg-gradient-to-br from-white/[0.05] to-zinc-950"
           : "border-white/10 bg-zinc-900/40")
       }
     >
       <p
         className={
           "font-mono text-[11px] uppercase tracking-widest " +
-          (accent ? "text-sky-300" : "text-zinc-500")
+          (accent ? "text-zinc-200" : "text-zinc-500")
         }
       >
         {tag}
@@ -696,7 +658,7 @@ function ArchPanel({
             <span
               className={
                 "mt-2 size-1.5 shrink-0 rounded-full " +
-                (accent ? "bg-sky-400" : "bg-zinc-500")
+                (accent ? "bg-white" : "bg-zinc-500")
               }
             />
             {it}
@@ -716,10 +678,10 @@ function FinalCta() {
           className="absolute inset-0 -z-10 opacity-70"
           style={{
             background:
-              "radial-gradient(ellipse 60% 80% at 80% 0%, rgba(56,189,248,0.16), transparent 60%), radial-gradient(ellipse 60% 80% at 0% 100%, rgba(59,130,246,0.12), transparent 60%)",
+              "radial-gradient(ellipse 60% 80% at 80% 0%, rgba(255,255,255,0.12), transparent 60%), radial-gradient(ellipse 60% 80% at 0% 100%, rgba(255,255,255,0.08), transparent 60%)",
           }}
         />
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-400/90">
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-300">
           Ready when you are
         </p>
         <h2 className="mt-4 max-w-2xl text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
@@ -732,7 +694,7 @@ function FinalCta() {
         <div className="mt-8 flex flex-wrap items-center gap-3">
           <Link
             href="/lift/squat"
-            className="group inline-flex items-center gap-2 rounded-lg bg-sky-400 px-5 py-2.5 text-sm font-semibold text-zinc-950 shadow-[0_0_18px_rgba(56,189,248,0.2)] transition hover:bg-sky-300"
+            className="group inline-flex items-center gap-2 rounded-lg bg-white px-5 py-2.5 text-sm font-semibold text-black transition hover:bg-zinc-200"
           >
             Start a squat session
             <ArrowRight className="size-4 transition group-hover:translate-x-0.5" />
@@ -761,8 +723,8 @@ function SiteFooter() {
     <footer className="border-t border-white/5 px-6 py-10">
       <div className="mx-auto flex max-w-6xl flex-col items-start justify-between gap-6 sm:flex-row sm:items-center">
         <div className="flex items-center gap-3 text-sm text-zinc-500">
-          <span className="grid size-6 place-items-center rounded-md border border-sky-400/30 bg-sky-400/10">
-            <span className="size-1.5 rounded-full bg-sky-400" />
+          <span className="grid size-6 place-items-center rounded-md border border-white/30 bg-white/10">
+            <span className="size-1.5 rounded-full bg-white" />
           </span>
           <span>
             Vela · MediaPipe + Claude + Backboard · built for lifters who train
@@ -799,7 +761,7 @@ function SectionHeader({
 }) {
   return (
     <div className="mx-auto max-w-3xl text-center">
-      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-400/90">
+      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-300">
         {eyebrow}
       </p>
       <h2 className="mt-4 text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
