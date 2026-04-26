@@ -17,25 +17,57 @@ import {
   type PoseLandmarkerResult,
 } from "@mediapipe/tasks-vision";
 
+/** Pinned to a CDN-mirrored version even though the npm package is on
+ *  0.10.22. jsdelivr never picked up 0.10.22 (404s on
+ *  `vision_wasm_internal.js`); 0.10.21 has the same JS API surface so
+ *  the small skew between npm bindings and CDN-served WASM is safe.
+ *  If we ever bump npm and the same gap reappears, just point this at
+ *  the latest tag that returns 200 on the CDN. */
 const WASM_URL =
-  "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/wasm";
+  "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.21/wasm";
 
+/** Pinned to version `1` rather than `latest` because Google's CDN
+ *  occasionally 404s the floating "latest" alias for the lite model. */
 const MODEL_URL =
   "https://storage.googleapis.com/mediapipe-models/pose_landmarker/" +
-  "pose_landmarker_lite/float16/latest/pose_landmarker_lite.task";
+  "pose_landmarker_lite/float16/1/pose_landmarker_lite.task";
 
 let _landmarkerPromise: Promise<PoseLandmarker> | null = null;
 
-/** Lazy-load and memoize the pose landmarker. Safe to call from multiple
- *  components — every caller awaits the same in-flight promise. */
-export function getPoseLandmarker(): Promise<PoseLandmarker> {
-  if (!_landmarkerPromise) {
-    _landmarkerPromise = (async () => {
-      const fileset = await FilesetResolver.forVisionTasks(WASM_URL);
+/** Stringify whatever MediaPipe threw at us. The WASM layer sometimes
+ *  rejects with raw Emscripten ints / non-Error objects, so the usual
+ *  `err.message` is unreliable. Always emit something useful for the
+ *  inline UI and the browser console. */
+function describeError(prefix: string, err: unknown): Error {
+  if (err instanceof Error) return new Error(`${prefix}: ${err.message}`);
+  if (typeof err === "string") return new Error(`${prefix}: ${err}`);
+  if (typeof err === "number") return new Error(`${prefix}: WASM exit ${err}`);
+  try {
+    return new Error(`${prefix}: ${JSON.stringify(err)}`);
+  } catch {
+    return new Error(`${prefix}: ${String(err)}`);
+  }
+}
+
+async function buildLandmarker(): Promise<PoseLandmarker> {
+  let fileset;
+  try {
+    fileset = await FilesetResolver.forVisionTasks(WASM_URL);
+  } catch (err) {
+    console.error("[pose] FilesetResolver failed:", err);
+    throw describeError("wasm load failed", err);
+  }
+
+  // Try GPU first; if the runtime can't initialize a GL/WebGPU context
+  // (common on Safari and on machines without proper drivers), fall back
+  // to CPU. CPU is ~5x slower per inference but tracks fine at 30fps for
+  // the lite model.
+  for (const delegate of ["GPU", "CPU"] as const) {
+    try {
       const landmarker = await PoseLandmarker.createFromOptions(fileset, {
         baseOptions: {
           modelAssetPath: MODEL_URL,
-          delegate: "GPU",
+          delegate,
         },
         runningMode: "VIDEO",
         numPoses: 1,
@@ -44,8 +76,21 @@ export function getPoseLandmarker(): Promise<PoseLandmarker> {
         minTrackingConfidence: 0.5,
         outputSegmentationMasks: false,
       });
+      console.info(`[pose] landmarker ready on ${delegate}`);
       return landmarker;
-    })();
+    } catch (err) {
+      console.warn(`[pose] ${delegate} delegate failed:`, err);
+      if (delegate === "CPU") throw describeError("model init failed", err);
+    }
+  }
+  throw new Error("model init failed: unreachable");
+}
+
+/** Lazy-load and memoize the pose landmarker. Safe to call from multiple
+ *  components — every caller awaits the same in-flight promise. */
+export function getPoseLandmarker(): Promise<PoseLandmarker> {
+  if (!_landmarkerPromise) {
+    _landmarkerPromise = buildLandmarker();
     // If the load fails, drop the promise so the next call retries. Without
     // this a transient CDN hiccup would brick the app for the session.
     _landmarkerPromise.catch(() => {
