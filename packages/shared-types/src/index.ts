@@ -129,6 +129,27 @@ export type SetsResponse = {
 };
 
 // ---------------------------------------------------------------------------
+// GET /api/sessions  (list user's sessions, owned by BE-A)
+// ---------------------------------------------------------------------------
+
+/** Lightweight summary row for the `/sessions` history view. Omits the
+ *  full event/set payloads — fetch the per-session report for those. */
+export type SessionListItem = {
+  session_id: string;
+  user_id: string;
+  lift: Lift;
+  started_at: IsoDateTime;
+  ended_at: IsoDateTime | null;
+  /** Total RiskEvent rows persisted for this session. */
+  event_count: number;
+};
+
+export type SessionListResponse = {
+  user_id: string;
+  sessions: SessionListItem[];
+};
+
+// ---------------------------------------------------------------------------
 // GET /api/sessions/:id/report
 // ---------------------------------------------------------------------------
 
