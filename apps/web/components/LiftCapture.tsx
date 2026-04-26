@@ -37,6 +37,7 @@ import {
   useApi,
 } from "@/lib/api-client";
 import { getPoseLandmarker, type PoseFrame } from "@/lib/pose/detector";
+import { drawPose, landmarksForRule } from "@/lib/pose/draw";
 import { createEngine, type RulesEngine } from "@/lib/rules/engine";
 
 type Phase =
@@ -49,17 +50,28 @@ type Phase =
 
 const FLUSH_INTERVAL_MS = 3000;
 
+/** How long an event highlight on the skeleton stays lit, in ms. Long
+ *  enough that the lifter notices it during the next rep, short enough
+ *  that stale fires don't bleed into clean reps. */
+const HIGHLIGHT_TTL_MS = 1500;
+
 export function LiftCapture({ lift }: { lift: Lift }) {
   const api = useApi();
   const router = useRouter();
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const engineRef = useRef<RulesEngine | null>(null);
   const sessionIdRef = useRef<string | null>(null);
   const rafIdRef = useRef<number | null>(null);
   const flushTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const frameCounterRef = useRef(0);
+  /** landmark index → `performance.now()` expiry timestamp. The frame
+   *  loop reads + prunes this map; the engine `onEvent` callback writes
+   *  to it. Using a ref (not state) so we don't re-render on every
+   *  rule fire — the canvas redraws on its own each frame anyway. */
+  const highlightsRef = useRef<Map<number, number>>(new Map());
 
   const [phase, setPhase] = useState<Phase>({ kind: "idle" });
   const [eventLog, setEventLog] = useState<RiskEvent[]>([]);
@@ -82,6 +94,13 @@ export function LiftCapture({ lift }: { lift: Lift }) {
     engineRef.current = null;
     sessionIdRef.current = null;
     frameCounterRef.current = 0;
+    highlightsRef.current.clear();
+    const canvas = canvasRef.current;
+    if (canvas) {
+      canvas
+        .getContext("2d")
+        ?.clearRect(0, 0, canvas.width, canvas.height);
+    }
   }, []);
 
   useEffect(() => () => cleanup(), [cleanup]);
@@ -152,16 +171,21 @@ export function LiftCapture({ lift }: { lift: Lift }) {
             `${e.rule_id}-${e.rep_index}-${e.side ?? ""}` === k ? event : e,
           );
         });
+        // Light up the affected joints on the overlay. `landmarksForRule`
+        // returns [] for rules we don't have a visualization for; that's
+        // fine — the overlay just keeps drawing the white skeleton.
+        const expiresAt = performance.now() + HIGHLIGHT_TTL_MS;
+        for (const idx of landmarksForRule(event.rule_id, event.side)) {
+          highlightsRef.current.set(idx, expiresAt);
+        }
       },
     });
     engineRef.current = engine;
 
     const tickFrame: VideoFrameRequestCallback = () => {
-      if (!engineRef.current || !videoRef.current) return;
-      const result = landmarker.detectForVideo(
-        videoRef.current,
-        performance.now(),
-      );
+      const v = videoRef.current;
+      if (!engineRef.current || !v) return;
+      const result = landmarker.detectForVideo(v, performance.now());
       const lms = result.landmarks?.[0];
       if (lms) {
         const frame: PoseFrame = {
@@ -173,6 +197,33 @@ export function LiftCapture({ lift }: { lift: Lift }) {
         const repState = engineRef.current.ingest(frame);
         setRepCount(repState.repIndex);
         setPhaseLabel(repState.phase);
+
+        // Sync the canvas to the source video's intrinsic resolution
+        // once we actually have frames. `videoWidth/Height` is 0 until
+        // metadata loads, so we wait for the first detection to size
+        // it. Reassigning .width/.height is cheap if the value matches.
+        const canvas = canvasRef.current;
+        if (canvas && v.videoWidth && v.videoHeight) {
+          if (
+            canvas.width !== v.videoWidth ||
+            canvas.height !== v.videoHeight
+          ) {
+            canvas.width = v.videoWidth;
+            canvas.height = v.videoHeight;
+          }
+          const ctx = canvas.getContext("2d");
+          if (ctx) {
+            const now = performance.now();
+            const active = new Set<number>();
+            for (const [idx, expiry] of highlightsRef.current) {
+              if (expiry > now) active.add(idx);
+              else highlightsRef.current.delete(idx);
+            }
+            drawPose(ctx, lms, canvas.width, canvas.height, {
+              highlightLandmarks: active,
+            });
+          }
+        }
       }
       if (videoRef.current && engineRef.current) {
         rafIdRef.current = videoRef.current.requestVideoFrameCallback(tickFrame);
@@ -259,6 +310,15 @@ export function LiftCapture({ lift }: { lift: Lift }) {
             muted
             autoPlay
             className="size-full -scale-x-100 object-cover"
+          />
+          {/* Skeleton overlay. Mirrored + object-cover so the painted
+              landmarks line up pixel-for-pixel with the mirrored video
+              underneath; pointer-events-none so clicks fall through to
+              the start/end controls. */}
+          <canvas
+            ref={canvasRef}
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 size-full -scale-x-100 object-cover"
           />
           {phase.kind === "idle" && (
             <Overlay icon={<Camera className="size-6 text-zinc-300" />}>
