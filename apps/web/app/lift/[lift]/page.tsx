@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Lift } from "@vela/shared-types";
 
 import { AppHeader } from "@/components/AppHeader";
+import { LiftCapture } from "@/components/LiftCapture";
 import { TodayPlanBanner } from "@/components/TodayPlanBanner";
 
 const lifts: Lift[] = ["squat", "bench", "deadlift"];
@@ -33,7 +34,7 @@ export default async function LiftPage({
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100">
       <AppHeader />
-      <main className="mx-auto max-w-3xl space-y-6 px-6 py-10">
+      <main className="mx-auto max-w-5xl space-y-6 px-6 py-10">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-400/90">
             Lift
@@ -45,9 +46,7 @@ export default async function LiftPage({
 
         <TodayPlanBanner lift={lift} />
 
-        <section className="rounded-2xl border border-dashed border-white/10 bg-zinc-900/30 p-6 text-sm text-zinc-500">
-          Live capture — MediaPipe overlay and rules engine land here next.
-        </section>
+        <LiftCapture lift={lift} />
       </main>
     </div>
   );

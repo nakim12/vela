@@ -1,8 +1,10 @@
 import type {
+  EventsAccepted,
   Lift,
   MemoryUpdatesResponse,
   PostSetSummaryResponse,
   PreSessionBanner,
+  RiskEvent,
   SessionCreate,
   SessionEndOut,
   SessionListResponse,
@@ -39,6 +41,21 @@ export function endSession(
 ): Promise<SessionEndOut> {
   return api<SessionEndOut>(`/api/sessions/${session_id}/end`, {
     method: "POST",
+  });
+}
+
+/** POST /api/sessions/{id}/events — flush a batch of rules-engine
+ *  candidates. The browser typically calls this every few seconds
+ *  during a set and once at end-of-set. The BE is idempotent on
+ *  duplicates so retries are safe. */
+export function postEvents(
+  api: ApiFetch,
+  session_id: string,
+  events: RiskEvent[],
+): Promise<EventsAccepted> {
+  return api<EventsAccepted>(`/api/sessions/${session_id}/events`, {
+    method: "POST",
+    body: JSON.stringify({ events }),
   });
 }
 
