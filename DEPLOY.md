@@ -1,8 +1,16 @@
-# Vela — frontend deploy on Vercel
+# Romus — frontend deploy on Vercel
 
 This walks through deploying **only the Next.js frontend** (`apps/web`)
 to Vercel. The FastAPI backend stays local on each developer's machine
 for now — see [`SETUP.md`](SETUP.md) for the local API setup.
+
+> **Naming note.** The product is being rebranded from "Vela" to
+> "Romus". The GitHub repo is still `nakim12/vela` and most of the
+> code (page copy, package.json, ClerkProvider theme, etc.) still
+> says "Vela" — the FE team owns that rename. For the **Vercel
+> deploy specifically**, we name the project `romus` so the public
+> URL reflects the new brand from day one. Vercel's project slug is
+> independent from the repo name, so this is a no-cost change.
 
 > **Read this first.** A frontend-only deploy works, but every visitor
 > still needs the API running on their own machine on
@@ -18,10 +26,10 @@ for now — see [`SETUP.md`](SETUP.md) for the local API setup.
 ## Architecture, deployed
 
 ```
-┌─────────────────┐        HTTPS         ┌──────────────────────────┐
-│ vela.vercel.app │  ───────────────────▶│ http://localhost:8000   │
-│ (Next.js + UI)  │   browser fetch      │ (your laptop's FastAPI) │
-└─────────────────┘                      └──────────────────────────┘
+┌──────────────────┐        HTTPS         ┌──────────────────────────┐
+│ romus.vercel.app │  ──────────────────▶ │ http://localhost:8000   │
+│ (Next.js + UI)   │   browser fetch      │ (your laptop's FastAPI) │
+└──────────────────┘                      └──────────────────────────┘
         ▲
         │ HTTPS
         │
@@ -67,17 +75,27 @@ branch directly for a preview.
 
 ### 3. Configure build settings
 
-This is the only step that needs care because Vela is an npm-workspaces
-monorepo. Vercel's defaults are mostly right; just verify these:
+The settings page that appears after Import has two things to get
+right: the **Project Name** (which becomes your URL) and the
+**Root Directory** (which tells Vercel where the Next.js app lives in
+the monorepo).
 
 | Field | Value |
 |---|---|
+| **Project Name** | `romus` ← **type this** (overrides the default `vela` from the repo name; URL becomes `https://romus.vercel.app`) |
 | **Framework Preset** | `Next.js` (auto-detected) |
 | **Root Directory** | `apps/web` ← **set this** |
 | **Build Command** | leave blank (uses `next build`) |
 | **Output Directory** | leave blank (uses `.next`) |
 | **Install Command** | leave blank — Vercel detects workspaces and runs `npm install` from the repo root, which correctly resolves the `@vela/shared-types` workspace dep |
 | **Node.js version** | 20.x (default) |
+
+> **If `romus` is taken** on Vercel's global namespace, the wizard
+> shows a red error under the field. Pick a fallback like
+> `romus-app`, `getromus`, or `romus-<your-handle>` — your URL
+> becomes `<that>.vercel.app`. You can rename later in
+> **Project → Settings → General → Project Name**, but the URL
+> changes when you do, so it's cheaper to get it right now.
 
 > **Why Root Directory `apps/web` instead of the repo root?** Vercel
 > needs to know which Next.js app to build. With workspaces, it still
@@ -131,18 +149,29 @@ Route (app)                                  Size  First Load JS
 
 If it fails, jump to [Common build failures](#common-build-failures).
 
-When it goes green, Vercel gives you a URL like
-`vela-<hash>-<your-team>.vercel.app` plus an alias
-`vela-<your-team>.vercel.app`. Both work.
+When it goes green, Vercel gives you three URLs that all point at this
+deployment:
+
+- `https://romus.vercel.app` — your **production alias**, the one to
+  share with the team and judges.
+- `https://romus-<scope>.vercel.app` — same target, scoped to your
+  Vercel team/account.
+- `https://romus-<hash>-<scope>.vercel.app` — immutable per-deploy
+  URL. Useful for pinning a specific build for review.
+
+(If you picked a different Project Name in step 3, swap `romus` for
+that slug throughout.)
 
 ### 6. Allowlist the Vercel URL in Clerk
 
 Clerk rejects sign-in flows from origins it doesn't know about, so:
 
-1. <https://dashboard.clerk.com> → your Vela app.
+1. <https://dashboard.clerk.com> → your app (whatever you named the
+   Clerk instance — "Vela" or "Romus" depending on when you created
+   it; the name is independent of functionality).
 2. **Configure → Domains** (or **Paths** in some plan tiers).
 3. Click **Add domain** and paste your Vercel URL **without** the
-   `https://` prefix, e.g. `vela.vercel.app`.
+   `https://` prefix, e.g. `romus.vercel.app`.
 4. Save.
 
 Repeat for any custom domain you add later.
@@ -174,9 +203,10 @@ either down or hitting a CORS wall. See
 
 Once it's wired up:
 
-- **Every push to `main`** → production deploy auto-runs.
+- **Every push to `main`** → production deploy auto-runs at
+  `https://romus.vercel.app`.
 - **Every PR opened** → preview deploy at
-  `vela-git-<branch>-<your-team>.vercel.app`. Designers can review on
+  `romus-git-<branch>-<scope>.vercel.app`. Designers can review on
   that URL without cloning.
 - **Vercel comments on PRs** with the preview URL (configurable in
   project settings).
@@ -243,10 +273,9 @@ your Vercel URL there:
 ```python
 allow_origins=[
     "http://localhost:3000",
-    "https://vela.vercel.app",         # ← your prod alias
-    "https://*.vercel.app",            # ← preview deploys (regex below)
+    "https://romus.vercel.app",        # ← your prod alias
 ],
-allow_origin_regex=r"https://.*\.vercel\.app",
+allow_origin_regex=r"https://romus(-[a-z0-9-]+)?\.vercel\.app",
 ```
 
 Restart uvicorn after editing.
