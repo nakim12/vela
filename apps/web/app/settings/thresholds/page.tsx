@@ -120,7 +120,7 @@ export default function ThresholdsPage() {
 
         <header className="mb-8 flex flex-wrap items-end justify-between gap-3">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-400/90">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-300">
               Settings · Thresholds
             </p>
             <h1 className="mt-1 text-3xl font-semibold tracking-tight">
@@ -223,7 +223,7 @@ function ThresholdRow({
     <section className="rounded-2xl border border-white/10 bg-white/[0.02] p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="font-mono text-[11px] uppercase tracking-widest text-sky-300">
+          <p className="font-mono text-[11px] uppercase tracking-widest text-zinc-300">
             {item.rule_id}
           </p>
           <p className="mt-1 font-mono text-[10px] text-zinc-600">
@@ -233,7 +233,7 @@ function ThresholdRow({
                 {" · "}
                 <Link
                   href={`/sessions/${item.source_session_id}`}
-                  className="text-sky-400 hover:text-sky-300"
+                  className="text-zinc-300 hover:text-zinc-300"
                 >
                   source session
                 </Link>
@@ -251,14 +251,14 @@ function ThresholdRow({
               step="any"
               value={value}
               onChange={(e) => setValue(e.target.value)}
-              className="w-24 rounded-md border border-white/10 bg-zinc-950/60 px-2 py-1 font-mono text-sm text-zinc-100 focus:border-sky-400/60 focus:outline-none"
+              className="w-24 rounded-md border border-white/10 bg-zinc-950/60 px-2 py-1 font-mono text-sm text-zinc-100 focus:border-white/35 focus:outline-none"
             />
           </label>
           <button
             type="button"
             onClick={handleSave}
             disabled={!dirty || saving}
-            className="inline-flex items-center gap-1.5 rounded-md border border-sky-400/30 bg-sky-400/10 px-2.5 py-1 text-xs font-medium text-sky-200 hover:bg-sky-400/20 disabled:opacity-40"
+            className="inline-flex items-center gap-1.5 rounded-md border border-white/20 bg-white/10 px-2.5 py-1 text-xs font-medium text-zinc-200 hover:bg-white/15 disabled:opacity-40"
           >
             {saving ? (
               <Loader2 className="size-3 animate-spin" />
@@ -279,7 +279,7 @@ function ThresholdRow({
           onChange={(e) => setJustification(e.target.value)}
           rows={2}
           placeholder="Why this override? (optional — agent fills this when it writes)"
-          className="mt-1 w-full resize-none rounded-md border border-white/10 bg-zinc-950/60 px-3 py-2 text-sm text-zinc-200 placeholder:text-zinc-600 focus:border-sky-400/40 focus:outline-none"
+          className="mt-1 w-full resize-none rounded-md border border-white/10 bg-zinc-950/60 px-3 py-2 text-sm text-zinc-200 placeholder:text-zinc-600 focus:border-white/30 focus:outline-none"
         />
       </label>
     </section>
@@ -354,7 +354,7 @@ function AddOverrideForm({
           <select
             value={ruleId}
             onChange={(e) => setRuleId(e.target.value)}
-            className="mt-1 w-full rounded-md border border-white/10 bg-zinc-950/60 px-2 py-1.5 text-sm text-zinc-100 focus:border-sky-400/60 focus:outline-none"
+            className="mt-1 w-full rounded-md border border-white/10 bg-zinc-950/60 px-2 py-1.5 text-sm text-zinc-100 focus:border-white/35 focus:outline-none"
           >
             {KNOWN_RULES.map((r) => (
               <option
@@ -377,14 +377,14 @@ function AddOverrideForm({
             value={value}
             onChange={(e) => setValue(e.target.value)}
             placeholder="e.g. 8.5"
-            className="mt-1 w-full rounded-md border border-white/10 bg-zinc-950/60 px-2 py-1.5 font-mono text-sm text-zinc-100 placeholder:text-zinc-600 focus:border-sky-400/60 focus:outline-none"
+            className="mt-1 w-full rounded-md border border-white/10 bg-zinc-950/60 px-2 py-1.5 font-mono text-sm text-zinc-100 placeholder:text-zinc-600 focus:border-white/35 focus:outline-none"
           />
         </label>
         <button
           type="button"
           onClick={handleAdd}
           disabled={saving || !value.trim()}
-          className="mt-auto inline-flex items-center justify-center gap-1.5 rounded-md border border-sky-400/30 bg-sky-400/10 px-3 py-1.5 text-xs font-medium text-sky-200 hover:bg-sky-400/20 disabled:opacity-40"
+          className="mt-auto inline-flex items-center justify-center gap-1.5 rounded-md border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-medium text-zinc-200 hover:bg-white/15 disabled:opacity-40"
         >
           {saving ? (
             <Loader2 className="size-3 animate-spin" />
@@ -402,7 +402,7 @@ function AddOverrideForm({
           value={justification}
           onChange={(e) => setJustification(e.target.value)}
           placeholder="Why are you overriding the default?"
-          className="mt-1 w-full rounded-md border border-white/10 bg-zinc-950/60 px-3 py-1.5 text-sm text-zinc-200 placeholder:text-zinc-600 focus:border-sky-400/40 focus:outline-none"
+          className="mt-1 w-full rounded-md border border-white/10 bg-zinc-950/60 px-3 py-1.5 text-sm text-zinc-200 placeholder:text-zinc-600 focus:border-white/30 focus:outline-none"
         />
       </label>
     </section>

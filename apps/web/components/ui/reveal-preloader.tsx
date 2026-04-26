@@ -5,7 +5,7 @@ import { AnimatePresence, motion } from "framer-motion";
 
 export function RevealPreloader({
   show,
-  text = "Rommus",
+  text = "lift smarter",
 }: {
   show: boolean;
   text?: string;
@@ -37,33 +37,34 @@ export function RevealPreloader({
           }}
         >
           <div className="flex h-full items-center justify-center">
-            <motion.p
+            <motion.div
               initial="hidden"
               animate="visible"
-              className="font-sans text-5xl font-semibold tracking-tight text-white sm:text-6xl"
+              className="flex flex-col items-center"
             >
-              {text.split("").map((char, idx) => (
-                <motion.span
-                  key={`${char}-${idx}`}
-                  className="inline-block"
-                  variants={{
-                    hidden: { opacity: 0, y: 70, filter: "blur(8px)" },
-                    visible: {
-                      opacity: 1,
-                      y: 0,
-                      filter: "blur(0px)",
-                      transition: {
-                        duration: 0.45,
-                        delay: idx * 0.07,
-                        ease: [0.22, 1, 0.36, 1],
-                      },
+              <motion.div
+                variants={{
+                  hidden: { opacity: 0, y: 40, filter: "blur(10px)" },
+                  visible: {
+                    opacity: 1,
+                    y: 0,
+                    filter: "blur(0px)",
+                    transition: {
+                      duration: 0.45,
+                      delay: 0.06,
+                      ease: [0.22, 1, 0.36, 1],
                     },
-                  }}
-                >
-                  {char === " " ? "\u00A0" : char}
-                </motion.span>
-              ))}
-            </motion.p>
+                  },
+                }}
+              >
+                <img
+                  src="/romus-logo.svg"
+                  alt="Romus"
+                  className="h-auto w-[148px] bg-transparent object-contain [filter:invert(1)_brightness(1.9)_contrast(1.15)]"
+                  draggable={false}
+                />
+              </motion.div>
+            </motion.div>
           </div>
         </motion.div>
       ) : null}

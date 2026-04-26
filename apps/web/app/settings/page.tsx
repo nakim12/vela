@@ -30,7 +30,7 @@ export default function SettingsPage() {
       <AppHeader />
       <main className="mx-auto max-w-3xl px-6 py-10">
         <header className="mb-8">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-400/90">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-300">
             Settings
           </p>
           <h1 className="mt-1 text-3xl font-semibold tracking-tight">
@@ -47,9 +47,9 @@ export default function SettingsPage() {
             <li key={href}>
               <Link
                 href={href}
-                className="group flex items-start gap-4 rounded-2xl border border-white/10 bg-white/[0.02] p-5 transition hover:border-sky-400/40 hover:bg-white/[0.04]"
+                className="group flex items-start gap-4 rounded-2xl border border-white/10 bg-white/[0.02] p-5 transition hover:border-white/30 hover:bg-white/[0.04]"
               >
-                <span className="grid size-10 shrink-0 place-items-center rounded-lg border border-sky-400/20 bg-sky-400/10 text-sky-300">
+                <span className="grid size-10 shrink-0 place-items-center rounded-lg border border-white/20 bg-white/10 text-zinc-300">
                   <Icon className="size-5" />
                 </span>
                 <div className="min-w-0 flex-1">
@@ -57,7 +57,7 @@ export default function SettingsPage() {
                     <h2 className="text-base font-semibold text-zinc-100">
                       {title}
                     </h2>
-                    <ArrowRight className="size-4 text-zinc-600 transition group-hover:translate-x-0.5 group-hover:text-sky-300" />
+                    <ArrowRight className="size-4 text-zinc-600 transition group-hover:translate-x-0.5 group-hover:text-zinc-300" />
                   </div>
                   <p className="mt-1 text-sm leading-relaxed text-zinc-400">
                     {blurb}

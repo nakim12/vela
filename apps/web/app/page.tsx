@@ -151,7 +151,7 @@ export default function Home() {
 
   return (
     <div className="relative min-h-screen overflow-x-hidden bg-black text-zinc-100 selection:bg-white/20 selection:text-white">
-      <RevealPreloader show={showPreloader} text="Romus" />
+      <RevealPreloader show={showPreloader} text="lift smarter" />
       <SiteNav />
       <div className="fixed inset-0 z-0">
         <Hero />
@@ -363,12 +363,12 @@ function Hero() {
         >
           <div className="mx-auto flex max-w-4xl flex-col items-center">
           <h1 className="mt-6 text-balance text-5xl font-semibold leading-[1.02] tracking-tight sm:text-6xl lg:text-7xl">
-            Train harder with <span className="text-white">fewer bad reps</span>
+            Cleaner reps for <span className="text-white">optimal workouts.</span>
           </h1>
           <p className="mt-6 max-w-2xl text-pretty text-base leading-relaxed text-zinc-400 sm:text-lg">
-            Real-time lift feedback for squat, bench, and deadlift. Vela flags
-            risky mechanics mid-set and gives you personalized cues you can use
-            on the very next rep.
+            Romus is a personalized training coach that visualizes your movement
+            in real time, helping you track form and improve technique for
+            lifts.
           </p>
 
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">

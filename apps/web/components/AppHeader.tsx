@@ -29,6 +29,11 @@ const NAV = [
 export function AppHeader() {
   const pathname = usePathname();
   const [isScrolled, setIsScrolled] = useState(false);
+  const [hoveredRoute, setHoveredRoute] = useState<string | null>(null);
+
+  const activeRoute =
+    NAV.find((item) => pathname === item.href || pathname.startsWith(`${item.href}/`))
+      ?.href ?? null;
 
   useEffect(() => {
     const onScroll = () => setIsScrolled(window.scrollY > 8);
@@ -68,29 +73,31 @@ export function AppHeader() {
             : "0ms, 520ms, 0ms, 0ms, 0ms, 0ms",
         }}
       >
-      <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-6 py-3">
-        <div className="flex items-center gap-6">
-          <Link href="/" className="inline-flex h-10 items-center p-2">
-            <img
-              src="/romus-logo.svg"
-              alt="Romus"
-              className="h-auto w-[72px] bg-transparent object-contain invert"
-              draggable={false}
-            />
-          </Link>
-          <nav className="hidden items-center gap-5 text-sm text-zinc-300 md:flex">
-            {NAV.map((item) => {
-              const active =
-                pathname === item.href || pathname.startsWith(`${item.href}/`);
+      <div className="mx-auto grid max-w-6xl grid-cols-[1fr_auto_1fr] items-center px-6 py-3">
+        <Link href="/" className="inline-flex h-10 items-center p-2 justify-self-start">
+          <img
+            src="/romus-logo.svg"
+            alt="Romus"
+            className="h-auto w-[72px] bg-transparent object-contain invert"
+            draggable={false}
+          />
+        </Link>
+        <nav
+          className="mx-auto hidden items-center gap-5 text-sm text-zinc-300 md:flex"
+          onMouseLeave={() => setHoveredRoute(null)}
+        >
+          {NAV.map((item) => {
+            const active = (hoveredRoute ?? activeRoute) === item.href;
               return (
                 <Link
                   key={item.href}
                   href={item.href}
+                  onMouseEnter={() => setHoveredRoute(item.href)}
                   className={
                     "relative isolate inline-flex h-10 items-center justify-center rounded-md px-3 leading-none transition-colors duration-300 " +
                     (active
                       ? "text-white"
-                      : "text-zinc-300 hover:bg-white/[0.04] hover:text-zinc-100")
+                      : "text-zinc-300")
                   }
                 >
                   {active && (
@@ -118,10 +125,10 @@ export function AppHeader() {
                   </span>
                 </Link>
               );
-            })}
-          </nav>
-        </div>
+          })}
+        </nav>
 
+        <div className="justify-self-end">
         <UserButton
           appearance={{
             elements: {
@@ -129,6 +136,7 @@ export function AppHeader() {
             },
           }}
         />
+        </div>
       </div>
       </div>
       </header>
