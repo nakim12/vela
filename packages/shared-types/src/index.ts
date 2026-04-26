@@ -364,9 +364,9 @@ export type TrendsResponse = {
 // POST /api/coach/message  (agent-driven, owned by BE-B)
 // ---------------------------------------------------------------------------
 
+/** Body for `POST /api/coach/message`. User identity comes from the
+ *  Clerk session token, not the body. */
 export type CoachMessageIn = {
-  /** Temporary stub until Clerk auth lands. */
-  user_id: string;
   message: string;
 };
 

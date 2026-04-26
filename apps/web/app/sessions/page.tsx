@@ -18,9 +18,10 @@ import type {
   TrendsResponse,
 } from "@vela/shared-types";
 
+import { useUser } from "@clerk/nextjs";
+
 import { AppHeader } from "@/components/AppHeader";
-import { ApiError, getTrends, listSessions } from "@/lib/api-client";
-import { useUserStore } from "@/lib/store/user";
+import { ApiError, getTrends, listSessions, useApi } from "@/lib/api-client";
 
 const RULE_COLORS: Record<string, string> = {
   KNEE_CAVE: "#38bdf8",
@@ -41,17 +42,21 @@ function colorFor(ruleId: string, idx: number): string {
 }
 
 export default function SessionsPage() {
-  const userId = useUserStore((s) => s.userId);
+  const api = useApi();
+  const { user, isLoaded } = useUser();
+  const displayName =
+    user?.primaryEmailAddress?.emailAddress ?? user?.username ?? user?.id ?? "you";
   const [trends, setTrends] = useState<TrendsResponse | null>(null);
   const [list, setList] = useState<SessionListResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!isLoaded) return;
     let cancelled = false;
     setLoading(true);
     setError(null);
-    Promise.all([getTrends(userId), listSessions(userId)])
+    Promise.all([getTrends(api), listSessions(api)])
       .then(([t, l]) => {
         if (cancelled) return;
         setTrends(t);
@@ -71,7 +76,7 @@ export default function SessionsPage() {
     return () => {
       cancelled = true;
     };
-  }, [userId]);
+  }, [api, isLoaded]);
 
   const chartData = useMemo(() => {
     if (!trends) return { rows: [], rules: [] as string[] };
@@ -110,7 +115,7 @@ export default function SessionsPage() {
             </p>
             <h1 className="mt-1 text-3xl font-semibold tracking-tight">
               Sessions for{" "}
-              <span className="text-sky-300">{userId}</span>
+              <span className="text-sky-300">{displayName}</span>
             </h1>
             <p className="mt-2 text-sm text-zinc-500">
               Newest first. Click any row to see the agent&rsquo;s post-set
