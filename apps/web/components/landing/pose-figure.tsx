@@ -93,8 +93,8 @@ function toneFromSeverity(severity: number): CardTone {
   // good -> warning -> risk (green -> yellow -> red)
   const [r, g, b] = mixColor([163, 230, 53], [250, 204, 21], [248, 113, 113], severity);
   return {
-    fill: toRgba(r, g, b, 0.12),
-    stroke: toRgba(r, g, b, 0.55),
+    fill: toRgba(r, g, b, 0.08),
+    stroke: toRgba(r, g, b, 0.42),
     text: toRgba(r, g, b, 1),
   };
 }
@@ -182,8 +182,8 @@ export function PoseFigure() {
   const torsoLean = Math.round(Math.abs(90 + (Math.atan2(pose.shoulder.y - pose.hip.y, pose.shoulder.x - pose.hip.x) * 180) / Math.PI));
   const hipFlexion = Math.round(angleBetweenDeg(pose.shoulder, pose.hip, pose.knee));
   const pulse = (Math.sin((progress * Math.PI * 2 * CYCLE_MS) / 800) + 1) / 2;
-  const highRadius = 10 + pulse * 8;
-  const highOpacity = 0.08 + pulse * 0.24;
+  const highRadius = 8 + pulse * 5;
+  const highOpacity = 0.05 + pulse * 0.12;
 
   const kneeSeverity = clamp01((160 - kneeAngle) / 40);
   const torsoSeverity = clamp01((torsoLean - 24) / 16);
@@ -253,7 +253,7 @@ export function PoseFigure() {
 
       <g
         fontFamily="ui-sans-serif, system-ui"
-        fontSize="11"
+        fontSize="10"
         fontWeight="500"
       >
         <g transform={`translate(${pose.knee.x - 164} ${pose.knee.y - 12})`}>
@@ -264,7 +264,7 @@ export function PoseFigure() {
             fill={kneeTone.fill}
             stroke={kneeTone.stroke}
           />
-          <text x="10" y="17" fill={kneeTone.text}>knee_angle</text>
+          <text x="10" y="17" fill={kneeTone.text}>knee_track</text>
           <text x="92" y="17" fill={kneeTone.text}>{kneeAngle}°</text>
         </g>
         <g transform={`translate(${pose.shoulder.x + 34} ${pose.shoulder.y - 30})`}>
@@ -275,7 +275,7 @@ export function PoseFigure() {
             fill={torsoTone.fill}
             stroke={torsoTone.stroke}
           />
-          <text x="10" y="17" fill={torsoTone.text}>torso_lean</text>
+          <text x="10" y="17" fill={torsoTone.text}>torso_stack</text>
           <text x="88" y="17" fill={torsoTone.text}>{torsoLean}°</text>
         </g>
         <g transform={`translate(${pose.hip.x - 166} ${pose.hip.y - 26})`}>
@@ -286,7 +286,7 @@ export function PoseFigure() {
             fill={hipTone.fill}
             stroke={hipTone.stroke}
           />
-          <text x="10" y="17" fill={hipTone.text}>hip_flexion</text>
+          <text x="10" y="17" fill={hipTone.text}>hip_depth</text>
           <text x="90" y="17" fill={hipTone.text}>{hipFlexion}°</text>
         </g>
       </g>
