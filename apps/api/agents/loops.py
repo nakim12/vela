@@ -74,6 +74,7 @@ async def post_set_loop(
         assistant_id=assistant_id,
         thread_id=thread_id,
         content=prompt,
+        session_id=session_id,
     )
 
     # Deterministic session-tagged memory write. The LLM is invited (via
@@ -183,6 +184,7 @@ async def in_set_loop(
         thread_id=thread_id,
         content=prompt,
         max_iterations=2,
+        session_id=session_id,
     )
     return _strip_wrapping_quotes(raw.strip())
 
@@ -225,6 +227,7 @@ async def pre_session_loop(
         assistant_id=assistant_id,
         thread_id=thread_id,
         content=prompt,
+        session_id=session_id,
     )
 
 

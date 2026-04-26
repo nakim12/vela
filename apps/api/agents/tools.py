@@ -173,8 +173,29 @@ async def dispatch(
     client: BackboardClient,
     user_id: str,
     assistant_id: str,
+    session_id: str | None = None,
 ) -> str:
-    """Execute the named tool. Returns a JSON string for ``submit_tool_outputs``."""
+    """Execute the named tool. Returns a JSON string for ``submit_tool_outputs``.
+
+    ``session_id`` is the run's current session, used to backfill
+    ``evidence_session_id`` when the LLM forgets to pass it. The schema marks
+    that argument required, but Backboard occasionally surfaces tool calls
+    without it; without this fallback the report fails mid-loop with a
+    KeyError that bubbles up as ``agent_failed: 'evidence_session_id'``.
+    For the coach-chat loop (no session) we leave it ``None``; the LLM gets
+    a JSON error back and can retry with the field included.
+    """
+    # Defensive backfill: if the LLM omitted evidence_session_id but we know
+    # which session this run is anchored to, fill it in. Mutating the
+    # arguments dict locally is fine — it's already been parsed off the
+    # tool-call payload and isn't reused upstream.
+    if (
+        name in ("log_observation", "update_threshold")
+        and "evidence_session_id" not in arguments
+        and session_id is not None
+    ):
+        arguments["evidence_session_id"] = session_id
+
     if name == "query_user_kg":
         result = await client.search_memories(
             assistant_id,
