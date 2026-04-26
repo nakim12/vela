@@ -25,15 +25,20 @@ import { ApiError, getThresholds, putThreshold, useApi } from "@/lib/api-client"
 
 /** Rules the in-browser engine knows about. Until the rules engine ships
  *  its own registry, this is the single source of truth for which rule_ids
- *  the dropdown lets you target. New rules just get added here. */
+ *  the dropdown lets you target. New rules just get added here. Rule IDs
+ *  must match exactly what the in-browser rules in `lib/rules/*` emit —
+ *  the agent's `update_threshold` writes are keyed by these strings.
+ *  Roadmap items (FORWARD_DUMP, BUTT_WINK, ROUND_BACK, HIPS_RISE_FIRST)
+ *  are kept in the dropdown so the UI is forward-compatible with rules
+ *  the engine will gain in later milestones. */
 const KNOWN_RULES: { id: string; label: string }[] = [
   { id: "KNEE_CAVE", label: "Knee cave · squat" },
-  { id: "FORWARD_DUMP", label: "Forward dump · squat" },
-  { id: "BUTT_WINK", label: "Butt wink · squat" },
   { id: "HEEL_LIFT", label: "Heel lift · squat" },
   { id: "DEPTH_ASYMMETRY", label: "Depth asymmetry · squat" },
-  { id: "BAR_DRIFT", label: "Bar drift · bench" },
+  { id: "FORWARD_DUMP", label: "Forward dump · squat" },
+  { id: "BUTT_WINK", label: "Butt wink · squat" },
   { id: "UNEVEN_PRESS", label: "Uneven press · bench" },
+  { id: "BAR_PATH_DRIFT", label: "Bar path drift · bench" },
   { id: "ROUND_BACK", label: "Round back · deadlift" },
   { id: "HIPS_RISE_FIRST", label: "Hips rise first · deadlift" },
 ];
