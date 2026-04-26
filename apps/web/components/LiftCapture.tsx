@@ -435,7 +435,7 @@ export function LiftCapture({ lift }: { lift: Lift }) {
     <section className="rounded-2xl border border-white/10 bg-zinc-900/40 p-5">
       <header className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-400/90">
+          <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-300">
             Live capture
           </h2>
           <p className="mt-0.5 text-[11px] text-zinc-500">
@@ -456,7 +456,7 @@ export function LiftCapture({ lift }: { lift: Lift }) {
               "ml-1 inline-flex size-7 items-center justify-center rounded-md border transition " +
               (muted
                 ? "border-white/10 bg-zinc-950/60 text-zinc-500 hover:text-zinc-300"
-                : "border-sky-400/30 bg-sky-400/10 text-sky-200 hover:bg-sky-400/20")
+                : "border-white/20 bg-white/10 text-zinc-200 hover:bg-white/15")
             }
           >
             {muted ? <VolumeX className="size-3.5" /> : <Volume2 className="size-3.5" />}
@@ -488,7 +488,7 @@ export function LiftCapture({ lift }: { lift: Lift }) {
             </Overlay>
           )}
           {phase.kind === "preparing" && (
-            <Overlay icon={<Loader2 className="size-6 animate-spin text-sky-300" />}>
+            <Overlay icon={<Loader2 className="size-6 animate-spin text-zinc-300" />}>
               {phase.step === "camera" && "Requesting camera access…"}
               {phase.step === "model" && "Loading pose model (~3 MB)…"}
               {phase.step === "session" && "Creating session…"}
@@ -547,7 +547,7 @@ export function LiftCapture({ lift }: { lift: Lift }) {
             type="button"
             onClick={start}
             disabled={isPreparing}
-            className="inline-flex items-center gap-1.5 rounded-md border border-sky-400/30 bg-sky-400/10 px-3 py-1.5 text-sm font-medium text-sky-200 transition hover:bg-sky-400/20 disabled:opacity-40"
+            className="inline-flex items-center gap-1.5 rounded-md border border-white/20 bg-white/10 px-3 py-1.5 text-sm font-medium text-zinc-200 transition hover:bg-white/15 disabled:opacity-40"
           >
             {isPreparing ? (
               <Loader2 className="size-3.5 animate-spin" />

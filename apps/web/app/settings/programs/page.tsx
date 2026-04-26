@@ -98,7 +98,7 @@ export default function ProgramsPage() {
 
         <header className="mb-8 flex flex-wrap items-end justify-between gap-3">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-400/90">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-300">
               Settings · Programs
             </p>
             <h1 className="mt-1 text-3xl font-semibold tracking-tight">
@@ -106,7 +106,7 @@ export default function ProgramsPage() {
             </h1>
             <p className="mt-2 max-w-prose text-sm text-zinc-500">
               One target per lift. Your coach updates these via{" "}
-              <code className="font-mono text-xs text-sky-300">
+              <code className="font-mono text-xs text-zinc-300">
                 recommend_load
               </code>{" "}
               after every session; override here to set the bar yourself.
@@ -202,7 +202,7 @@ function ProgramCard({
   return (
     <section className="flex flex-col rounded-2xl border border-white/10 bg-white/[0.02] p-5">
       <div className="mb-4">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-400/90">
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-300">
           {lift}
         </p>
         {program ? (
@@ -213,7 +213,7 @@ function ProgramCard({
                 {" · "}
                 <Link
                   href={`/sessions/${program.source_session_id}`}
-                  className="text-sky-400 hover:text-sky-300"
+                  className="text-zinc-300 hover:text-zinc-300"
                 >
                   source session
                 </Link>
@@ -237,7 +237,7 @@ function ProgramCard({
         type="button"
         onClick={handleSubmit}
         disabled={!dirty || saving}
-        className="mt-4 inline-flex items-center justify-center gap-1.5 rounded-md border border-sky-400/30 bg-sky-400/10 px-3 py-1.5 text-xs font-medium text-sky-200 hover:bg-sky-400/20 disabled:opacity-40"
+        className="mt-4 inline-flex items-center justify-center gap-1.5 rounded-md border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-medium text-zinc-200 hover:bg-white/15 disabled:opacity-40"
       >
         {saving ? (
           <Loader2 className="size-3 animate-spin" />
@@ -272,7 +272,7 @@ function NumField({
         min={integer ? "1" : undefined}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="mt-1 w-full rounded-md border border-white/10 bg-zinc-950/60 px-2 py-1.5 font-mono text-sm text-zinc-100 focus:border-sky-400/60 focus:outline-none"
+        className="mt-1 w-full rounded-md border border-white/10 bg-zinc-950/60 px-2 py-1.5 font-mono text-sm text-zinc-100 focus:border-white/35 focus:outline-none"
       />
     </label>
   );

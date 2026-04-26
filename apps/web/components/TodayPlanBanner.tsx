@@ -112,7 +112,7 @@ export function TodayPlanBanner({ lift }: { lift: Lift }) {
       aria-label="Today's plan"
       className="rounded-2xl border border-white/5 bg-zinc-900/60 p-5 shadow-[0_0_0_1px_rgba(255,255,255,0.02)] backdrop-blur"
     >
-      <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-sky-400/90">
+      <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-300">
         <span>Today&apos;s plan</span>
         <span className="text-zinc-600">·</span>
         <span className="capitalize text-zinc-400">{lift}</span>
@@ -178,7 +178,7 @@ function Body({ lift, state }: { lift: Lift; state: BannerState }) {
         {target.source_session_id ? (
           <Link
             href={`/sessions/${target.source_session_id}`}
-            className="inline-flex items-center gap-1 rounded-full border border-white/10 px-3 py-1.5 text-xs font-medium text-zinc-300 transition hover:border-sky-400/40 hover:text-sky-300"
+            className="inline-flex items-center gap-1 rounded-full border border-white/10 px-3 py-1.5 text-xs font-medium text-zinc-300 transition hover:border-white/30 hover:text-zinc-300"
           >
             Why this target?
             <ArrowRight className="size-3.5" />

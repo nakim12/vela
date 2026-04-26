@@ -267,7 +267,7 @@ function Avatar({
     return (
       <span
         aria-hidden
-        className="grid size-8 shrink-0 place-items-center rounded-md border border-sky-400/30 bg-sky-400/10 text-sky-200"
+        className="grid size-8 shrink-0 place-items-center rounded-md border border-white/20 bg-white/10 text-zinc-200"
       >
         <Sparkles className="size-3.5" />
       </span>
@@ -290,7 +290,7 @@ function Avatar({
 function EmptyState({ onPick }: { onPick: (s: string) => void }) {
   return (
     <div className="flex h-full flex-col items-center justify-center text-center">
-      <span className="grid size-10 place-items-center rounded-xl border border-sky-400/30 bg-sky-400/10 text-sky-200">
+      <span className="grid size-10 place-items-center rounded-xl border border-white/20 bg-white/10 text-zinc-200">
         <Sparkles className="size-4" />
       </span>
       <p className="mt-3 text-sm font-medium text-zinc-200">
@@ -306,10 +306,10 @@ function EmptyState({ onPick }: { onPick: (s: string) => void }) {
             key={s}
             type="button"
             onClick={() => onPick(s)}
-            className="group flex items-center justify-between gap-3 rounded-md border border-white/10 bg-white/[0.03] px-3 py-2 text-left text-sm text-zinc-300 transition hover:border-sky-400/30 hover:bg-white/[0.06] hover:text-zinc-100"
+            className="group flex items-center justify-between gap-3 rounded-md border border-white/10 bg-white/[0.03] px-3 py-2 text-left text-sm text-zinc-300 transition hover:border-white/20 hover:bg-white/[0.06] hover:text-zinc-100"
           >
             <span>{s}</span>
-            <Send className="size-3 text-zinc-600 transition group-hover:translate-x-0.5 group-hover:text-sky-300" />
+            <Send className="size-3 text-zinc-600 transition group-hover:translate-x-0.5 group-hover:text-zinc-300" />
           </button>
         ))}
       </div>

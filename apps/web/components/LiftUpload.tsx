@@ -474,7 +474,7 @@ export function LiftUpload({ lift }: { lift: Lift }) {
     <section className="rounded-2xl border border-white/10 bg-zinc-900/40 p-5">
       <header className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-400/90">
+          <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-300">
             Upload &amp; analyze
           </h2>
           <p className="mt-0.5 text-[11px] text-zinc-500">
@@ -495,7 +495,7 @@ export function LiftUpload({ lift }: { lift: Lift }) {
               "ml-1 inline-flex size-7 items-center justify-center rounded-md border transition " +
               (muted
                 ? "border-white/10 bg-zinc-950/60 text-zinc-500 hover:text-zinc-300"
-                : "border-sky-400/30 bg-sky-400/10 text-sky-200 hover:bg-sky-400/20")
+                : "border-white/20 bg-white/10 text-zinc-200 hover:bg-white/15")
             }
           >
             {muted ? (
@@ -555,7 +555,7 @@ export function LiftUpload({ lift }: { lift: Lift }) {
             </Overlay>
           )}
           {isPreparing && (
-            <Overlay icon={<Loader2 className="size-6 animate-spin text-sky-300" />}>
+            <Overlay icon={<Loader2 className="size-6 animate-spin text-zinc-300" />}>
               {phase.step === "model" && "Loading pose model (~3 MB)…"}
               {phase.step === "session" && "Creating session…"}
             </Overlay>
@@ -624,7 +624,7 @@ export function LiftUpload({ lift }: { lift: Lift }) {
             <button
               type="button"
               onClick={start}
-              className="inline-flex items-center gap-1.5 rounded-md border border-sky-400/30 bg-sky-400/10 px-3 py-1.5 text-sm font-medium text-sky-200 transition hover:bg-sky-400/20"
+              className="inline-flex items-center gap-1.5 rounded-md border border-white/20 bg-white/10 px-3 py-1.5 text-sm font-medium text-zinc-200 transition hover:bg-white/15"
             >
               <Play className="size-3.5" />
               Analyze
@@ -691,7 +691,7 @@ function DropZone({
       }}
       className={
         "absolute inset-0 grid cursor-pointer place-items-center bg-zinc-950/80 text-center text-sm text-zinc-200 backdrop-blur-sm transition " +
-        (dragOver ? "ring-2 ring-sky-400/60 ring-offset-0" : "")
+        (dragOver ? "ring-2 ring-white/40 ring-offset-0" : "")
       }
     >
       <input
@@ -703,7 +703,7 @@ function DropZone({
         className="sr-only"
       />
       <div className="flex max-w-sm flex-col items-center gap-2 px-6">
-        <Upload className="size-6 text-sky-300" />
+        <Upload className="size-6 text-zinc-300" />
         <p className="font-medium text-zinc-100">
           Drop a video here, or click to choose
         </p>
@@ -738,7 +738,7 @@ function ProgressBar({ value }: { value: number }) {
     <div className="pointer-events-none absolute inset-x-3 bottom-3 flex items-center gap-2 rounded-md border border-white/10 bg-zinc-950/70 px-3 py-1.5 backdrop-blur-sm">
       <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/10">
         <div
-          className="h-full rounded-full bg-sky-400/80 transition-[width] duration-200"
+          className="h-full rounded-full bg-white/80 transition-[width] duration-200"
           style={{ width: `${pct}%` }}
         />
       </div>
