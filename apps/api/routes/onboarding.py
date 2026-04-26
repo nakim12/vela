@@ -24,6 +24,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from agents.runtime import ensure_assistant_for_user
+from auth import get_effective_user_id
 from bb import get_client
 from db.models import User
 from db.session import get_db
@@ -51,10 +52,6 @@ class OnboardingIn(BaseModel):
     empty so a user who skips a question still creates a valid profile.
     """
 
-    user_id: str = Field(
-        description="Temporary stub until Clerk auth lands. Use any "
-        "stable id you'd recognize later (email-like is fine).",
-    )
     email: str | None = None
     anthropometrics: Anthropometrics = Field(default_factory=Anthropometrics)
     injuries: list[str] = Field(
@@ -113,22 +110,27 @@ def _anthropometrics_summary(a: Anthropometrics) -> str | None:
     summary="Seed a new user's profile + Backboard knowledge graph",
 )
 async def onboarding(
-    body: OnboardingIn, db: Session = Depends(get_db)
+    body: OnboardingIn,
+    db: Session = Depends(get_db),
+    current_user_id: str = Depends(get_effective_user_id),
 ) -> OnboardingResponse:
     """Create / refresh a user's profile and seed initial KG memories.
 
-    Idempotency: re-running with the same ``user_id`` is safe — the user
+    Idempotency: re-running for the same caller is safe — the user
     row gets its anthropometrics overwritten (latest answers win) and the
     same Backboard assistant is reused via ``ensure_assistant_for_user``.
     Memories, however, are append-only on Backboard's side: re-submitting
     the same injury list will create duplicate memory rows. That's
     acceptable for now (the agent tolerates duplicates), but worth a
     cleanup pass once we have a real signup flow that only fires once.
+
+    The user id is the Clerk session ``sub`` (or ``DEMO_USER_ID`` in local
+    dev). Pass ``?user_id=…`` in dev without Clerk to target a smoke-test id.
     """
-    user = db.get(User, body.user_id)
+    user = db.get(User, current_user_id)
     if user is None:
         user = User(
-            id=body.user_id,
+            id=current_user_id,
             email=body.email,
             anthropometrics=body.anthropometrics.model_dump(exclude_none=True) or None,
         )
@@ -143,9 +145,9 @@ async def onboarding(
 
     client = get_client()
     try:
-        assistant_id = await ensure_assistant_for_user(client, body.user_id)
+        assistant_id = await ensure_assistant_for_user(client, current_user_id)
     except Exception as e:
-        log.exception("ensure_assistant_for_user failed for %s", body.user_id)
+        log.exception("ensure_assistant_for_user failed for %s", current_user_id)
         raise HTTPException(
             status_code=502, detail=f"backboard_failed: {e}"
         ) from e
@@ -226,7 +228,7 @@ async def onboarding(
             ) from e
 
     return OnboardingResponse(
-        user_id=body.user_id,
+        user_id=current_user_id,
         assistant_id=assistant_id,
         memories_written=memories_written,
     )

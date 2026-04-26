@@ -83,7 +83,7 @@ async def trigger_observations() -> None:
 async def hit_endpoint() -> dict:
     print(f"[client] GET {ENDPOINT}")
     async with httpx.AsyncClient(timeout=60.0) as http:
-        r = await http.get(ENDPOINT)
+        r = await http.get(ENDPOINT, params={"user_id": USER_ID})
         r.raise_for_status()
         return r.json()
 

@@ -68,7 +68,7 @@ async def main() -> None:
         print("[1/5] POST /sessions")
         r = await http.post(
             f"{BASE}/sessions",
-            json={"user_id": USER_ID, "lift": "squat"},
+            json={"lift": "squat"},
         )
         r.raise_for_status()
         session_id = r.json()["session_id"]
@@ -77,6 +77,7 @@ async def main() -> None:
         print(f"[2/5] POST /sessions/{session_id}/events ({len(EVENTS)} events)")
         r = await http.post(
             f"{BASE}/sessions/{session_id}/events",
+            params={"user_id": USER_ID},
             json={"events": EVENTS},
         )
         r.raise_for_status()
@@ -86,7 +87,8 @@ async def main() -> None:
         print(f"[3/5] POST /sessions/{session_id}/post_set_summary "
               "(first call, should generate)")
         r = await http.post(
-            f"{BASE}/sessions/{session_id}/post_set_summary"
+            f"{BASE}/sessions/{session_id}/post_set_summary",
+            params={"user_id": USER_ID},
         )
         r.raise_for_status()
         body1 = r.json()
@@ -102,7 +104,8 @@ async def main() -> None:
         print(f"[4/5] POST /sessions/{session_id}/post_set_summary "
               "(second call, should be cached)")
         r = await http.post(
-            f"{BASE}/sessions/{session_id}/post_set_summary"
+            f"{BASE}/sessions/{session_id}/post_set_summary",
+            params={"user_id": USER_ID},
         )
         r.raise_for_status()
         body2 = r.json()
@@ -118,7 +121,7 @@ async def main() -> None:
               "(re-roll path)")
         r = await http.post(
             f"{BASE}/sessions/{session_id}/post_set_summary",
-            params={"force": "true"},
+            params={"user_id": USER_ID, "force": "true"},
         )
         r.raise_for_status()
         body3 = r.json()

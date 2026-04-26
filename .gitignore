@@ -21,7 +21,10 @@ dist/
 downloads/
 eggs/
 .eggs/
+# Python sdist "lib" folder — but do not block Next.js `apps/web/lib/`
 lib/
+!apps/web/lib/
+!apps/web/lib/**
 lib64/
 parts/
 sdist/
