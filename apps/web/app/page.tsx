@@ -1,3 +1,6 @@
+ "use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Show, SignInButton, UserButton } from "@clerk/nextjs";
 import {
@@ -135,7 +138,7 @@ const knownLifterCues = [
 
 export default function Home() {
   return (
-    <div className="relative min-h-screen overflow-hidden bg-black text-zinc-100 selection:bg-white/20 selection:text-white">
+    <div className="relative min-h-screen overflow-x-hidden bg-black text-zinc-100 selection:bg-white/20 selection:text-white">
       <SiteNav />
       <Hero />
       <StatsStrip />
@@ -152,10 +155,50 @@ export default function Home() {
 }
 
 function SiteNav() {
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => {
+      setIsScrolled(window.scrollY > 8);
+    };
+
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   return (
-    <header className="sticky top-0 z-30 border-b border-white/5 bg-zinc-950/70 backdrop-blur-xl">
+    <header
+      className={
+        "fixed inset-x-0 top-0 z-50 transition-all duration-500 " +
+        (isScrolled ? "px-3 pt-2" : "px-0 pt-0")
+      }
+      style={{ transitionTimingFunction: "cubic-bezier(0.22, 1, 0.36, 1)" }}
+    >
+      <div
+        role="presentation"
+        className={
+          "mx-auto border bg-zinc-900/65 backdrop-blur-xl transition-[width,border-radius,transform,box-shadow,background-color,border-color] duration-700 " +
+          (isScrolled
+            ? "translate-y-0 border-white/15 shadow-[0_14px_34px_-18px_rgba(0,0,0,0.78)]"
+            : "border-white/10 shadow-none")
+        }
+        style={{
+          width: isScrolled ? "min(72rem, calc(100% - 1.5rem))" : "100%",
+          borderRadius: isScrolled ? "1rem" : "0rem",
+          transitionTimingFunction: "cubic-bezier(0.4, 0, 0.2, 1)",
+          transitionProperty:
+            "width, border-radius, transform, box-shadow, background-color, border-color",
+          transitionDuration: isScrolled
+            ? "700ms, 700ms, 700ms, 700ms, 700ms, 700ms"
+            : "700ms, 180ms, 700ms, 700ms, 700ms, 700ms",
+          transitionDelay: isScrolled
+            ? "0ms, 0ms, 0ms, 0ms, 0ms, 0ms"
+            : "0ms, 520ms, 0ms, 0ms, 0ms, 0ms",
+        }}
+      >
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3.5">
-        <Link href="/" className="group inline-flex items-center gap-2.5">
+        <Link href="/" className="group inline-flex items-center gap-2.5 p-2">
           <span className="grid size-7 place-items-center rounded-md border border-white/30 bg-white/10 text-white">
             <span className="size-1.5 rounded-full bg-white" />
           </span>
@@ -194,7 +237,7 @@ function SiteNav() {
           </Show>
           <Link
             href="/lift/squat"
-            className="group inline-flex items-center gap-1.5 rounded-md bg-white px-3 py-1.5 text-sm font-medium text-black transition hover:bg-zinc-200"
+            className="group inline-flex items-center gap-1.5 rounded-md bg-white p-2 text-sm font-medium text-black transition hover:bg-zinc-200"
           >
             Try the demo
             <ArrowRight className="size-3.5 transition group-hover:translate-x-0.5" />
@@ -209,6 +252,7 @@ function SiteNav() {
             />
           </Show>
         </div>
+      </div>
       </div>
     </header>
   );
